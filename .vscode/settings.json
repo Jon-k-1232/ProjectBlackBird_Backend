@@ -1,0 +1,9 @@
+{
+     "prettier.trailingComma": "all",
+     "prettier.singleQuote": true,
+     "prettier.jsxSingleQuote": true,
+     "prettier.jsxBracketSameLine": true,
+     "editor.formatOnPaste": true,
+     "editor.formatOnSave": true,
+     "editor.formatOnType": true
+}
