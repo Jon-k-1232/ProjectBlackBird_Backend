@@ -8,6 +8,10 @@ const app = express();
 const contactsRouter = require('./endpoints/contacts/contacts-router');
 const jobDescriptionRouter = require('./endpoints/jobDescriptions/jobDescriptions-router');
 const payTo = require('./endpoints/payTo/payTo-router');
+const transactions = require('./endpoints/transactions/transactions-router');
+const employee = require('./endpoints/employee/employee-router');
+const company = require('./endpoints/job/job-router');
+const invoices = require('./endpoints/invoice/invoice-router');
 
 const morganOption = NODE_ENV === 'production' ? 'tiny' : 'common';
 
@@ -31,6 +35,10 @@ app.get('/', (req, res) => {
 app.use('/contacts', contactsRouter);
 app.use('/jobDescription', jobDescriptionRouter);
 app.use('/payTo', payTo);
+app.use('/transactions', transactions);
+app.use('/employee', employee);
+app.use('/jobs', company);
+app.use('/invoices', invoices);
 
 /* ///////////////////////////\\\\  ERROR HANDLER  ////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/
 
