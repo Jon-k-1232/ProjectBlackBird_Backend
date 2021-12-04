@@ -33,11 +33,11 @@ app.get('/', (req, res) => {
 });
 
 app.use('/contacts', contactsRouter);
+app.use('/jobs', company);
 app.use('/jobDescription', jobDescriptionRouter);
 app.use('/payTo', payTo);
 app.use('/transactions', transactions);
 app.use('/employee', employee);
-app.use('/jobs', company);
 app.use('/invoices', invoices);
 
 /* ///////////////////////////\\\\  ERROR HANDLER  ////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/
