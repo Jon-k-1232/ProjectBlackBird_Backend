@@ -17,6 +17,7 @@ invoiceRouter.route('/all/:company').get(async (req, res) => {
 		invoiceService.getInvoiceDetail(db, arrayOfIds).then(details => {
 			// Mapping the none detail invoices to the matching invoice detail
 			const invoices = invoicesWithNoDetail.map(invoiceWoDetail => {
+				// ToDo - ASK IF MULTIPLE INVOICES CAN HAVE MULTIPLE DETAILS
 				const matchingDetailItem = details.find(
 					detailItem => detailItem.invoice === invoiceWoDetail.oid,
 				);
