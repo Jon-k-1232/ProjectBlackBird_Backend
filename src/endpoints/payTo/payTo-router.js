@@ -2,6 +2,7 @@ const express = require('express');
 const payToRouter = express.Router();
 const payToService = require('./payTo-service');
 
+// Gets most recent 'pay to' record
 payToRouter.route('/recent').get(async (req, res) => {
 	const db = req.app.get('db');
 

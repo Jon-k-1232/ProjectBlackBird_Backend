@@ -2,6 +2,7 @@ const express = require('express');
 const contactsRouter = express.Router();
 const contactService = require('./contacts-service');
 
+// Gets all contacts
 contactsRouter.route('/all').get(async (req, res) => {
 	const db = req.app.get('db');
 
@@ -13,6 +14,7 @@ contactsRouter.route('/all').get(async (req, res) => {
 	});
 });
 
+// Gets all active contacts
 contactsRouter.route('/allActiveContacts').get(async (req, res) => {
 	const db = req.app.get('db');
 

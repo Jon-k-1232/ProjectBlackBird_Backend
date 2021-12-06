@@ -1,7 +1,7 @@
 const express = require('express');
 const transactionsRouter = express.Router();
 const transactions = require('./transactions-service');
-const dayjs = require('dayjs');
+const helperFunctions = require('../../helperFunctions/helperFunctions');
 
 /**
  * All Transactions within a given time frame- in days.
@@ -10,7 +10,7 @@ const dayjs = require('dayjs');
 transactionsRouter.route('/all/:time').get(async (req, res) => {
 	const db = req.app.get('db');
 	const time = req.params.time;
-	const timeBetween = timeCalculator(time);
+	const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
 	transactions
 		.getTransactions(db, timeBetween.now, timeBetween.date)
@@ -33,7 +33,8 @@ transactionsRouter
 		// Default time 360 days if user has not provided a time
 		const time = req.params.time === 'null' ? 360 : req.params.time;
 		const company = req.params.company;
-		const timeBetween = timeCalculator(time);
+		const timeBetween =
+			helperFunctions.timeSubtractionFromTodayCalculator(time);
 
 		transactions
 			.getCompanyTransactions(db, company, timeBetween.now, timeBetween.date)
@@ -46,17 +47,3 @@ transactionsRouter
 	});
 
 module.exports = transactionsRouter;
-
-/**
- * Helpper function to help subtract a user given time in days from todays date.
- * @param {*} time
- * @returns an object with todays date, and the calculated date
- */
-const timeCalculator = time => {
-	const now = dayjs().format('MM/DD/YYYY HH:mm:ss');
-	const date = dayjs()
-		.subtract(time, 'days')
-		.startOf('days')
-		.format('MM/DD/YYYY HH:mm:ss');
-	return { date, now };
-};

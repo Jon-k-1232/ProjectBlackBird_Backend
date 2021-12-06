@@ -2,9 +2,7 @@ const express = require('express');
 const employeeRouter = express.Router();
 const employeeService = require('./employee-service');
 
-/**
- * Returns all employees active and inactive
- */
+// Returns all employees active and inactive
 employeeRouter.route('/all').get(async (req, res) => {
 	const db = req.app.get('db');
 
@@ -16,9 +14,7 @@ employeeRouter.route('/all').get(async (req, res) => {
 	});
 });
 
-/**
- * Returns all active employees
- */
+// Returns all active employees
 employeeRouter.route('/allActiveEmployees').get(async (req, res) => {
 	const db = req.app.get('db');
 

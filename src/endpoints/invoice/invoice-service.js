@@ -1,8 +1,9 @@
 const invoiceService = {
 	/**
+	 * Gets a list of invoices for user provided company
 	 * @param {*} db takes in db
 	 * @param {*} time company OID
-	 * @returns returns a list of jobs for user input company
+	 * @returns [{},{}] Array of objects.
 	 */
 	getCompanyInvoices(db, companyId) {
 		return db.select().from('invoice').whereIn('company', [companyId]);
@@ -20,7 +21,7 @@ const invoiceService = {
 	},
 
 	/**
-	 *
+	 * Gets all items that are showing a balance
 	 * @param {*} db
 	 * @returns All new invoices for companies that have balances greater than zero. Used for end of month statements
 	 */
