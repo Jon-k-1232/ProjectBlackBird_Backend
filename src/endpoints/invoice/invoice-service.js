@@ -33,6 +33,10 @@ const invoiceService = {
 			.orWhere('totalnewcharges', '>', 0)
 			.orWhere('unpaidbalance', '>', 0);
 	},
+
+	insertNewInvoice(db, newInvoice) {
+		return db.insert(newInvoice).returning('*').into('invoice');
+	},
 };
 
 module.exports = invoiceService;

@@ -12,6 +12,7 @@ const transactions = require('./endpoints/transactions/transactions-router');
 const employee = require('./endpoints/employee/employee-router');
 const company = require('./endpoints/job/job-router');
 const invoices = require('./endpoints/invoice/invoice-router');
+const createInvoices = require('./endpoints/createInvoice/createInvoice-router');
 
 const morganOption = NODE_ENV === 'production' ? 'tiny' : 'common';
 
@@ -39,6 +40,7 @@ app.use('/payTo', payTo);
 app.use('/transactions', transactions);
 app.use('/employee', employee);
 app.use('/invoices', invoices);
+app.use('/create', createInvoices);
 
 /* ///////////////////////////\\\\  ERROR HANDLER  ////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\*/
 

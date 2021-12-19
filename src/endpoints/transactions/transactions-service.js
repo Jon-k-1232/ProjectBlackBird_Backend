@@ -1,4 +1,4 @@
-const transactions = {
+const transactionService = {
 	/**
 	 *  All transactions that are between user selected days and now.
 	 * @param {*} db takes in db
@@ -28,6 +28,13 @@ const transactions = {
 			.whereIn('company', [company])
 			.whereBetween('transactiondate', [date, now]);
 	},
+
+	/**
+	 *
+	 */
+	insertNewTransaction(db, newTransaction) {
+		return db.insert(newTransaction).returning('*').into('transaction');
+	},
 };
 
-module.exports = transactions;
+module.exports = transactionService;

@@ -198,7 +198,7 @@ CREATE TABLE public.transaction (
     reference character varying(100) NULL,
     noteordescription character varying(10485760) NULL,
     discount double precision NULL,
-    invoice integer NULL,
+    invoice  INTEGER DEFAULT NULL,
     usertag character varying(100) NULL,
     paymentapplied boolean NULL,
     ignoreinageing boolean NULL

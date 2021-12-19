@@ -5,8 +5,12 @@ const jobService = {
 	 * @param {*} time company OID
 	 * @returns [{},{}] Array of objects. Each object is a job for the given company
 	 */
-	getJobs(db, companyId) {
-		return db.select().from('job').whereIn('company', [companyId]);
+	getJobs(db, companyId, now, date) {
+		return db
+			.select()
+			.from('job')
+			.whereIn('company', [companyId])
+			.whereBetween('startdate', [date, now]);
 	},
 
 	/**
@@ -17,6 +21,26 @@ const jobService = {
 	 */
 	getJobDetail(db, arrayOfIds) {
 		return db.select().from('jobdefinition').whereIn('oid', arrayOfIds);
+	},
+
+	/**
+	 * Gets all jobs within a given timeframe
+	 * @param {*} db takes in db
+	 * @param {*} time company OID
+	 * @returns [{},{}] Array of objects. Each object is a job
+	 */
+	getAllJobs(db, now, date) {
+		return db.select().from('job').whereBetween('startdate', [date, now]);
+	},
+
+	/**
+	 *
+	 * @param {*} db
+	 * @param {*} newMessage
+	 * @returns
+	 */
+	insertNewJob(db, newJob) {
+		return db.insert(newJob).returning('*').into('job');
 	},
 };
 

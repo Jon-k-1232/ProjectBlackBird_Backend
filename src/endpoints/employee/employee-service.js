@@ -16,6 +16,18 @@ const employeeService = {
 	getActiveEmployees(db) {
 		return db.select().from('employee').whereIn('inactive', [false]);
 	},
+
+	updateEmployee(db, employeeId, updatedEmployee) {
+		return db
+			.insert()
+			.from('employee')
+			.where('oid', employeeId)
+			.update(updatedEmployee);
+	},
+
+	insertEmployee(db, newEmployee) {
+		return db.insert(newEmployee).returning('*').into('employee');
+	},
 };
 
 module.exports = employeeService;
