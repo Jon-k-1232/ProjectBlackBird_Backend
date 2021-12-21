@@ -6,7 +6,7 @@ const invoiceService = {
 	 * @returns [{},{}] Array of objects.
 	 */
 	getCompanyInvoices(db, companyId) {
-		return db.select().from('invoice').whereIn('company', [companyId]);
+		return db.select().from('invoice').whereIn('company', [companyId])
 	},
 
 	/**
@@ -17,7 +17,7 @@ const invoiceService = {
 	 * Each object is a new invoice detail. EACH DETAIL NEEDS PAIRED TO AN INVOICE UPON RETURN
 	 */
 	getInvoiceDetail(db, arrayOfIds) {
-		return db.select().from('invoicedetail').whereIn('invoice', arrayOfIds);
+		return db.select().from('invoicedetail').whereIn('invoice', arrayOfIds)
 	},
 
 	/**
@@ -26,17 +26,18 @@ const invoiceService = {
 	 * @returns All new invoices for companies that have balances greater than zero. Used for end of month statements
 	 */
 	getNewInvoices(db) {
-		return db
-			.select()
-			.from('invoice')
-			.where('endingbalance', '>', 0)
-			.orWhere('totalnewcharges', '>', 0)
-			.orWhere('unpaidbalance', '>', 0);
+		return db.select().from('invoice').where('endingbalance', '>', 0).orWhere('totalnewcharges', '>', 0).orWhere('unpaidbalance', '>', 0)
 	},
 
+	/**
+	 * Insert a new invoice for a company
+	 * @param {*} db
+	 * @param {*} newInvoice {}
+	 * @returns
+	 */
 	insertNewInvoice(db, newInvoice) {
-		return db.insert(newInvoice).returning('*').into('invoice');
+		return db.insert(newInvoice).returning('*').into('invoice')
 	},
-};
+}
 
-module.exports = invoiceService;
+module.exports = invoiceService

@@ -7,10 +7,7 @@ const transactionService = {
 	 * @returns [{},{}]
 	 */
 	getTransactions(db, now, date) {
-		return db
-			.select()
-			.from('transaction')
-			.whereBetween('transactiondate', [date, now]);
+		return db.select().from('transaction').whereBetween('transactiondate', [date, now])
 	},
 
 	/**
@@ -22,19 +19,18 @@ const transactionService = {
 	 * @returns [{},{}]
 	 */
 	getCompanyTransactions(db, company, now, date) {
-		return db
-			.select()
-			.from('transaction')
-			.whereIn('company', [company])
-			.whereBetween('transactiondate', [date, now]);
+		return db.select().from('transaction').whereIn('company', [company]).whereBetween('transactiondate', [date, now])
 	},
 
 	/**
-	 *
+	 * inserts new transaction for a company
+	 * @param {*} db
+	 * @param {*} newTransaction {}
+	 * @returns [{},{}]
 	 */
 	insertNewTransaction(db, newTransaction) {
-		return db.insert(newTransaction).returning('*').into('transaction');
+		return db.insert(newTransaction).returning('*').into('transaction')
 	},
-};
+}
 
-module.exports = transactionService;
+module.exports = transactionService

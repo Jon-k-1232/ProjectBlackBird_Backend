@@ -5,8 +5,18 @@ const payToService = {
 	 * @returns [{},{}] array of objects. Each object is a 'pay to' record
 	 */
 	getpayToInfo(db) {
-		return db.select().table('setupdata');
+		return db.select().table('setupdata')
 	},
-};
 
-module.exports = payToService;
+	/**
+	 * Inserts updated pay to information
+	 * @param {*} db
+	 * @param {*} newRecord {}
+	 * @returns
+	 */
+	insertPayToInfo(db, newRecord) {
+		return db.insert(newRecord).returning('*').into('setupdata')
+	},
+}
+
+module.exports = payToService

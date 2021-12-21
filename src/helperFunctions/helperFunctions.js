@@ -1,4 +1,4 @@
-const dayjs = require('dayjs');
+const dayjs = require('dayjs')
 
 const helperFunctions = {
 	/**
@@ -10,31 +10,20 @@ const helperFunctions = {
 	 * @param {*} searchPropertyTwo A second string value of what subproperty to compare against. Ex: detail.invoice. Property one and two get compared against each other
 	 * @returns a appended array of objects. [{},{}]. Each object is an object from arrayOne with detailsToAdd added upder propertyToAdd.
 	 */
-	addProperty: (
-		arrayOne,
-		detailsToAdd,
-		propertyToAdd,
-		searchPropertyOne,
-		searchPropertyTwo,
-	) => {
+	addProperty: (arrayOne, detailsToAdd, propertyToAdd, searchPropertyOne, searchPropertyTwo) => {
 		// Mapping the none detail invoices to the matching invoice detail
 		return arrayOne.map(itemWithoutDetail => {
-			const matchingDetailItem = detailsToAdd.find(
-				detailItem => detailItem.oid === itemWithoutDetail[searchPropertyTwo],
-			);
+			const matchingDetailItem = detailsToAdd.find(detailItem => detailItem.oid === itemWithoutDetail[searchPropertyTwo])
 
 			//Adding property to every item in case nothing is found.
-			itemWithoutDetail[propertyToAdd] = null;
+			itemWithoutDetail[propertyToAdd] = null
 
-			if (
-				matchingDetailItem[searchPropertyOne] ===
-				itemWithoutDetail[searchPropertyTwo]
-			) {
-				itemWithoutDetail[propertyToAdd] = matchingDetailItem;
+			if (matchingDetailItem[searchPropertyOne] === itemWithoutDetail[searchPropertyTwo]) {
+				itemWithoutDetail[propertyToAdd] = matchingDetailItem
 			}
 
-			return itemWithoutDetail;
-		});
+			return itemWithoutDetail
+		})
 	},
 
 	/**
@@ -44,13 +33,10 @@ const helperFunctions = {
 	 */
 
 	timeSubtractionFromTodayCalculator: time => {
-		const now = dayjs().format('MM/DD/YYYY HH:mm:ss');
-		const date = dayjs()
-			.subtract(time, 'days')
-			.startOf('days')
-			.format('MM/DD/YYYY HH:mm:ss');
-		return { date, now };
+		const now = dayjs().format('MM/DD/YYYY HH:mm:ss')
+		const date = dayjs().subtract(time, 'days').startOf('days').format('MM/DD/YYYY HH:mm:ss')
+		return { date, now }
 	},
-};
+}
 
-module.exports = helperFunctions;
+module.exports = helperFunctions

@@ -5,7 +5,7 @@ const contactService = {
 	 * @returns [{},{}] Array of objects. Each object is a contact
 	 */
 	getAllContactsInfo(db) {
-		return db.select().table('company');
+		return db.select().table('company')
 	},
 
 	/**
@@ -14,11 +14,17 @@ const contactService = {
 	 * @returns [{},{}] Array of objects. Each object is a active contact
 	 */
 	getAllActiveContacts(db) {
-		return db.select().from('company').whereIn('inactive', [false]);
+		return db.select().from('company').whereIn('inactive', [false])
 	},
 
+	/**
+	 * Updates contact information
+	 * @param {*} db
+	 * @param {*} id int
+	 * @returns [{}] array of object. object is company record
+	 */
 	getContactInfo(db, id) {
-		return db.select().from('company').whereIn('oid', [id]);
+		return db.select().from('company').whereIn('oid', [id])
 	},
 
 	/**
@@ -28,7 +34,7 @@ const contactService = {
 	 * @returns [{},{}] Array of objects. Each object is a active contact
 	 */
 	insertNewContact(db, newContact) {
-		return db.insert(newContact).returning('*').into('company');
+		return db.insert(newContact).returning('*').into('company')
 	},
 
 	/**
@@ -39,12 +45,8 @@ const contactService = {
 	 * @returns [{},{}] Array of objects. Each object is a active contact
 	 */
 	updateContact(db, contactId, updatedContact) {
-		return db
-			.insert()
-			.from('company')
-			.where('oid', contactId)
-			.update(updatedContact);
+		return db.insert().from('company').where('oid', contactId).update(updatedContact)
 	},
-};
+}
 
-module.exports = contactService;
+module.exports = contactService
