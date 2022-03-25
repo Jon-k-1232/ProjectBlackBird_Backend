@@ -33,9 +33,9 @@ const helperFunctions = {
 	 */
 
 	timeSubtractionFromTodayCalculator: time => {
-		const now = dayjs().format('MM/DD/YYYY HH:mm:ss')
-		const date = dayjs().subtract(time, 'days').startOf('days').format('MM/DD/YYYY HH:mm:ss')
-		return { date, now }
+		const currDate = dayjs().format('MM/DD/YYYY HH:mm:ss')
+		const prevDate = dayjs().subtract(time, 'days').startOf('days').format('MM/DD/YYYY HH:mm:ss')
+		return { prevDate, currDate }
 	},
 }
 
