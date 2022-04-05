@@ -16,7 +16,7 @@ const jobService = {
    * @returns [{},{}] Array of objects. Each object is a matched job definition
    */
   getJobDetail(db, arrayOfIds) {
-    return db.select().from('jobDefinition').whereIn('oid', arrayOfIds);
+    return db.select().from('jobdefinition').whereIn('oid', arrayOfIds);
   },
 
   /**

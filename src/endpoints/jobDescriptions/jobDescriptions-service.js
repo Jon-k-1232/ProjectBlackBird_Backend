@@ -5,7 +5,7 @@ const jobDescriptions = {
    * @returns [{},{}] array of objects. each object is a job description
    */
   getAllJobDescriptions(db) {
-    return db.select().table('jobDefinition');
+    return db.select().table('jobdefinition');
   },
 
   /**
@@ -15,7 +15,7 @@ const jobDescriptions = {
    * @returns
    */
   insertNewJobDescription(db, newJobDescription) {
-    return db.insert(newJobDescription).returning('*').into('jobDefinition');
+    return db.insert(newJobDescription).returning('*').into('jobdefinition');
   },
 
   /**
@@ -26,7 +26,7 @@ const jobDescriptions = {
    * @returns
    */
   updateJobDescription(db, descriptionId, updatedDescription) {
-    return db.insert().from('jobDefinition').where('oid', descriptionId).update(updatedDescription);
+    return db.insert().from('jobdefinition').where('oid', descriptionId).update(updatedDescription);
   },
 };
 

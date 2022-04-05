@@ -8,8 +8,8 @@ const { sanitizeFields } = require('../../utils');
 // Get all jobs for a company
 jobRouter.route('/all/:company/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const company = req.params.company;
-  const time = req.params.time;
+  const company = parseInt(req.params.company, 10);
+  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   jobService.getJobs(db, company, timeBetween.currDate, timeBetween.prevDate).then(allJobsForCompany => {
@@ -32,7 +32,8 @@ jobRouter.route('/all/:company/:time').get(async (req, res) => {
  */
 jobRouter.route('/allJobs/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const time = req.params.time;
+  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
+  console.log(time);
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   jobService.getAllJobs(db, timeBetween.currDate, timeBetween.prevDate).then(allJobsWithinTimeframe => {

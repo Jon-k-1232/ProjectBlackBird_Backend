@@ -44,7 +44,7 @@ jobDescriptionsRouter.route('/new/addNewDescription').post(jsonParser, async (re
  */
 jobDescriptionsRouter.route('/update/jobDescription/:descriptionId').put(jsonParser, async (req, res) => {
   const db = req.app.get('db');
-  const { descriptionId } = req.params;
+  const { descriptionId } = parseInt(req.params, 10);
   const { description, defaultTargetPrice, billable } = req.body;
 
   const updatedDescription = sanitizeFields({

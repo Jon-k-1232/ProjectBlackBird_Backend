@@ -12,7 +12,7 @@ const contactService = require('../contacts/contacts-service');
  */
 transactionsRouter.route('/all/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const time = req.params.time;
+  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   transactionService.getTransactions(db, timeBetween.currDate, timeBetween.prevDate).then(allTransactions => {
@@ -29,14 +29,31 @@ transactionsRouter.route('/all/:time').get(async (req, res) => {
  */
 transactionsRouter.route('/companyTransactions/:company/:time').get(async (req, res) => {
   const db = req.app.get('db');
+
   // Default time 360 days if user has not provided a time
-  const time = req.params.time === 'null' ? 360 : req.params.time;
-  const company = req.params.company;
+  const time = req.params.time === parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 360;
+  const company = parseInt(req.params.company, 10);
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   transactionService.getCompanyTransactions(db, company, timeBetween.currDate, timeBetween.prevDate).then(sortedCompanyTransactions => {
     res.send({
       sortedCompanyTransactions,
+      status: 200,
+    });
+  });
+});
+
+/**
+ *
+ */
+transactionsRouter.route('/jobTransactions/:companyId/:jobId/').get(async (req, res) => {
+  const db = req.app.get('db');
+  const companyId = parseInt(req.params.companyId, 10);
+  const jobId = parseInt(req.params.jobId, 10);
+
+  transactionService.getJobTransactions(db, companyId, jobId).then(jobTransactions => {
+    res.send({
+      jobTransactions,
       status: 200,
     });
   });

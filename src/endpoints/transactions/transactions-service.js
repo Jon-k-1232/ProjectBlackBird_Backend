@@ -23,6 +23,15 @@ const transactionService = {
   },
 
   /**
+   * Get transactions for a given job
+   * @param {*} db
+   * @param {*} jobId
+   */
+  getJobTransactions(db, companyId, jobId) {
+    return db.select().from('job').whereIn('company', [companyId]).whereIn('jobDefinition', [jobId]);
+  },
+
+  /**
    * inserts new transaction for a company
    * @param {*} db
    * @param {*} newTransaction {}

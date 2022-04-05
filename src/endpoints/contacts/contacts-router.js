@@ -21,9 +21,9 @@ contactsRouter.route('/all').get(async (req, res) => {
 /**
  * Finds company with company id
  */
-contactsRouter.route('/:companyId').get(async (req, res) => {
+contactsRouter.route('/company/:companyId').get(async (req, res) => {
   const db = req.app.get('db');
-  const { companyId } = req.params;
+  const companyId = parseInt(req.params.companyId, 10);
 
   contactService.getContactInfo(db, companyId).then(companyContactInformation => {
     res.send({
@@ -113,7 +113,7 @@ contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
  */
 contactsRouter.route('/update/contact/:contactId').put(jsonParser, async (req, res) => {
   const db = req.app.get('db');
-  const { contactId } = req.params;
+  const { contactId } = parseInt(req.params, 10);
   const {
     oid,
     newBalance,

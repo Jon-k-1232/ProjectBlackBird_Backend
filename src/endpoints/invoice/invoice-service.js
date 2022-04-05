@@ -1,5 +1,14 @@
 const invoiceService = {
   /**
+   * Gets all invoices
+   * @param {*} db
+   * @returns
+   */
+  getAllInvoices(db, currDate, prevDate) {
+    return db.select().from('invoice').whereBetween('invoiceDate', [prevDate, currDate]);
+  },
+
+  /**
    * Gets a list of invoices for user provided company
    * @param {*} db takes in db
    * @param {*} time company OID
@@ -17,7 +26,7 @@ const invoiceService = {
    * Each object is a new invoice detail. EACH DETAIL NEEDS PAIRED TO AN INVOICE UPON RETURN
    */
   getInvoiceDetail(db, arrayOfIds) {
-    return db.select().from('invoiceDetail').whereIn('invoice', arrayOfIds);
+    return db.select().from('invoicedetail').whereIn('invoice', arrayOfIds);
   },
 
   /**

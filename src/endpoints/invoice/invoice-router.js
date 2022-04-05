@@ -5,22 +5,28 @@ const helperFunctions = require('../../helperFunctions/helperFunctions');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
 
+invoiceRouter.route('/all/time/:time').get(async (req, res) => {
+  const db = req.app.get('db');
+  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 1095;
+  const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
+
+  invoiceService.getAllInvoices(db, timeBetween.currDate, timeBetween.prevDate).then(invoices => {
+    res.send({
+      invoices,
+      status: 200,
+    });
+  });
+});
+
 // Gets all invoices + invoice detail for a specific company
-invoiceRouter.route('/all/:company').get(async (req, res) => {
-  const company = req.params.company;
+invoiceRouter.route('/all/company/:company').get(async (req, res) => {
+  const company = parseInt(req.params.company, 10);
   const db = req.app.get('db');
 
   invoiceService.getCompanyInvoices(db, company).then(invoicesWithNoDetail => {
-    const arrayOfIds = invoicesWithNoDetail.map(item => item.oid);
-
-    invoiceService.getInvoiceDetail(db, arrayOfIds).then(details => {
-      // Mapping invoice detail to each of the matching invoices
-      const invoices = helperFunctions.addProperty(invoicesWithNoDetail, details, 'invoiceDetails', 'invoice', 'oid');
-
-      res.send({
-        invoices,
-        status: 200,
-      });
+    res.send({
+      invoicesWithNoDetail,
+      status: 200,
     });
   });
 });
