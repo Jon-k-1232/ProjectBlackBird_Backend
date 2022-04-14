@@ -4,10 +4,11 @@ const invoiceService = require('./invoice-service');
 const helperFunctions = require('../../helperFunctions/helperFunctions');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
+const { defaultDaysInPast } = require('../../config');
 
 invoiceRouter.route('/all/time/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 1095;
+  const time = Number(req.params.time) ? Number(req.params.time) : defaultDaysInPast;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   invoiceService.getAllInvoices(db, timeBetween.currDate, timeBetween.prevDate).then(invoices => {
@@ -20,7 +21,7 @@ invoiceRouter.route('/all/time/:time').get(async (req, res) => {
 
 // Gets all invoices + invoice detail for a specific company
 invoiceRouter.route('/all/company/:company').get(async (req, res) => {
-  const company = parseInt(req.params.company, 10);
+  const company = Number(req.params.company);
   const db = req.app.get('db');
 
   invoiceService.getCompanyInvoices(db, company).then(invoicesWithNoDetail => {
@@ -51,49 +52,49 @@ invoiceRouter.route('/newInvoices').get(async (req, res) => {
 });
 
 // ToDo make a manual entery for a user. will need to take in invoice details, invoice insert, and update contact financials
-invoiceRouter.route('/a/a/a').post(jsonParser, async (req, res) => {
-  const db = req.app.get('db');
-  const {
-    company,
-    invoiceNumber,
-    contactName,
-    address1,
-    address2,
-    address3,
-    address4,
-    address5,
-    beginningBalance,
-    totalPayments,
-    totalNewCharges,
-    endingBalance,
-    unPaidBalance,
-    invoiceDate,
-    paymentDueDate,
-    dataEndDate,
-  } = req.body;
+// invoiceRouter.route('/a/a/a').post(jsonParser, async (req, res) => {
+//   const db = req.app.get('db');
+//   const {
+//     company,
+//     invoiceNumber,
+//     contactName,
+//     address1,
+//     address2,
+//     address3,
+//     address4,
+//     address5,
+//     beginningBalance,
+//     totalPayments,
+//     totalNewCharges,
+//     endingBalance,
+//     unPaidBalance,
+//     invoiceDate,
+//     paymentDueDate,
+//     dataEndDate,
+//   } = req.body;
 
-  const newInvoice = sanitizeFields({
-    company,
-    invoiceNumber,
-    contactName,
-    address1,
-    address2,
-    address3,
-    address4,
-    address5,
-    beginningBalance,
-    totalPayments,
-    totalNewCharges,
-    endingBalance,
-    unPaidBalance,
-    invoiceDate,
-    paymentDueDate,
-    dataEndDate,
-  });
+//   const newInvoice = sanitizeFields({
+//     company,
+//     invoiceNumber,
+//     contactName,
+//     address1,
+//     address2,
+//     address3,
+//     address4,
+//     address5,
+//     beginningBalance,
+//     totalPayments,
+//     totalNewCharges,
+//     endingBalance,
+//     unPaidBalance,
+//     invoiceDate,
+//     paymentDueDate,
+//     dataEndDate,
+//   });
 
-  invoiceService.insertNewInvoice(db, newInvoice).then(() => {
-    res.send({ message: 'invoice added successfully.', status: 200 });
-  });
-});
+// invoiceService.insertNewInvoice(db, newInvoice).then(() => {
+//   res.send({ message: 'invoice added successfully.', status: 200 });
+// });
+// });
 
 module.exports = invoiceRouter;

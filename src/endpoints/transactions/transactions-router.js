@@ -5,6 +5,7 @@ const helperFunctions = require('../../helperFunctions/helperFunctions');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
 const contactService = require('../contacts/contacts-service');
+const { defaultDaysInPast } = require('../../config');
 
 /**
  * All Transactions within a given time frame- in days.
@@ -12,7 +13,7 @@ const contactService = require('../contacts/contacts-service');
  */
 transactionsRouter.route('/all/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
+  const time = Number(req.params.time) ? Number(req.params.time) : defaultDaysInPast;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   transactionService.getTransactions(db, timeBetween.currDate, timeBetween.prevDate).then(allTransactions => {
@@ -31,8 +32,8 @@ transactionsRouter.route('/companyTransactions/:company/:time').get(async (req, 
   const db = req.app.get('db');
 
   // Default time 360 days if user has not provided a time
-  const time = req.params.time === parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 360;
-  const company = parseInt(req.params.company, 10);
+  const time = req.params.time === Number(req.params.time) ? Number(req.params.time) : defaultDaysInPast;
+  const company = Number(req.params.company);
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   transactionService.getCompanyTransactions(db, company, timeBetween.currDate, timeBetween.prevDate).then(sortedCompanyTransactions => {
@@ -48,8 +49,8 @@ transactionsRouter.route('/companyTransactions/:company/:time').get(async (req, 
  */
 transactionsRouter.route('/jobTransactions/:companyId/:jobId/').get(async (req, res) => {
   const db = req.app.get('db');
-  const companyId = parseInt(req.params.companyId, 10);
-  const jobId = parseInt(req.params.jobId, 10);
+  const companyId = Number(req.params.companyId);
+  const jobId = Number(req.params.jobId);
 
   transactionService.getJobTransactions(db, companyId, jobId).then(jobTransactions => {
     res.send({

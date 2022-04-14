@@ -4,12 +4,13 @@ const jobService = require('./job-service');
 const helperFunctions = require('../../helperFunctions/helperFunctions');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
+const { defaultDaysInPast } = require('../../config');
 
 // Get all jobs for a company
 jobRouter.route('/all/:company/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const company = parseInt(req.params.company, 10);
-  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
+  const company = Number(req.params.company);
+  const time = Number(req.params.time) ? Number(req.params.time) : defaultDaysInPast;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   jobService.getJobs(db, company, timeBetween.currDate, timeBetween.prevDate).then(allJobsForCompany => {
@@ -32,8 +33,7 @@ jobRouter.route('/all/:company/:time').get(async (req, res) => {
  */
 jobRouter.route('/allJobs/:time').get(async (req, res) => {
   const db = req.app.get('db');
-  const time = parseInt(req.params.time, 10) ? parseInt(req.params.time, 10) : 730;
-  console.log(time);
+  const time = Number(req.params.time) ? Number(req.params.time) : defaultDaysInPast;
   const timeBetween = helperFunctions.timeSubtractionFromTodayCalculator(time);
 
   jobService.getAllJobs(db, timeBetween.currDate, timeBetween.prevDate).then(allJobsWithinTimeframe => {

@@ -1,53 +1,55 @@
-const express = require('express')
-const createInvoiceRouter = express.Router()
-const createInvoiceService = require('./createInvoice-service')
-const invoiceService = require('../invoice/invoice-service')
-const contactService = require('../contacts/contacts-service')
-const helperFunctions = require('../../helperFunctions/helperFunctions')
-const dayjs = require('dayjs')
+const express = require('express');
+const createInvoiceRouter = express.Router();
+const createInvoiceService = require('./createInvoice-service');
+const invoiceService = require('../invoice/invoice-service');
+const contactService = require('../contacts/contacts-service');
+const helperFunctions = require('../../helperFunctions/helperFunctions');
+const dayjs = require('dayjs');
 
 // ToDo needs refactor and Error handleing
 
 // Gets most recent 'pay to' record
 createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
-	const db = req.app.get('db')
+  const db = req.app.get('db');
 
-	// Gets a list of contacts where balance has changed since last billing cycle.[{},{}]array of objects
-	const readyToBillContacts = await createInvoiceService.getReadyToBill(db)
+  // Gets a list of contacts where balance has changed since last billing cycle.[{},{}]array of objects
+  const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
 
-	// Loop through each contact
-	readyToBillContacts.map((contactRecord, i) => {
-		// Gets latest invoice and increments based on index
-		createInvoiceService.getInvoiceNumber(db).then(lastInvoice => {
-			let lastInvoiceNumber = parseInt(lastInvoice.pop().invoiceNumber) + 1 + i
+  // Loop through each contact
+  readyToBillContacts.map((contactRecord, i) => {
+    // Gets latest invoice and increments based on index
+    createInvoiceService.getInvoiceNumber(db).then(lastInvoice => {
+      let lastInvoiceNumber = Number(lastInvoice.pop().invoiceNumber) + 1 + i;
 
-			// Get most recent invoice for perticular contact
-			invoiceService.getCompanyInvoices(db, contactRecord.oid).then(mostRecentInvoice => {
-				// returns todays date and date of prior based on passed arg
-				const time = helperFunctions.timeSubtractionFromTodayCalculator(365)
-				const lastInvoiceDate = mostRecentInvoice.length === 0 ? time.prevDate : mostRecentInvoice[0].invoiceDate
+      // Get most recent invoice for perticular contact
+      invoiceService.getCompanyInvoices(db, contactRecord.oid).then(mostRecentInvoice => {
+        // returns todays date and date of prior based on passed arg
+        const time = helperFunctions.timeSubtractionFromTodayCalculator(365);
+        const lastInvoiceDate = mostRecentInvoice.length === 0 ? time.prevDate : mostRecentInvoice[0].invoiceDate;
 
-				// Get all transactions, with linked jobs between last invoice date and now.
-				createInvoiceService.getAllTransactions(db, lastInvoiceDate, time.currDate, contactRecord.oid).then(allTransactionsWithLinkedJobs => {
-					const grouped = groupByJob(allTransactionsWithLinkedJobs)
-					const calculatedJobs = calculateTotals(grouped)
-					const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, lastInvoiceNumber)
-					const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice)
+        // Get all transactions, with linked jobs between last invoice date and now.
+        createInvoiceService
+          .getAllTransactions(db, lastInvoiceDate, time.currDate, contactRecord.oid)
+          .then(allTransactionsWithLinkedJobs => {
+            const grouped = groupByJob(allTransactionsWithLinkedJobs);
+            const calculatedJobs = calculateTotals(grouped);
+            const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, lastInvoiceNumber);
+            const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
 
-					// Insert all items into respective tables
-					invoiceService.insertNewInvoice(db, newInvoice.invoice).then(() => {
-						createInvoiceService.insertInvoiceDetails(db, newInvoice.invoiceDetails).then(() => {
-							contactService.updateContact(db, contactRecord.oid, updatedContactFinancials)
-						})
-					})
-				})
-			})
-		})
-		return contactRecord
-	})
-})
+            // Insert all items into respective tables
+            invoiceService.insertNewInvoice(db, newInvoice.invoice).then(() => {
+              createInvoiceService.insertInvoiceDetails(db, newInvoice.invoiceDetails).then(() => {
+                contactService.updateContact(db, contactRecord.oid, updatedContactFinancials);
+              });
+            });
+          });
+      });
+    });
+    return contactRecord;
+  });
+});
 
-module.exports = createInvoiceRouter
+module.exports = createInvoiceRouter;
 
 /**
  * Groups Array of objects by job.
@@ -55,22 +57,22 @@ module.exports = createInvoiceRouter
  * @returns [[],[]] Array of arrays each array is a grouping by job
  */
 const groupByJob = data => {
-	// Making a list of Job Id's and removing any duplicates. Array of integers
-	const jobListWithDuplicates = data.map(record => record.job)
-	const jobListWithDuplicatesRemoved = [...new Set(jobListWithDuplicates)]
+  // Making a list of Job Id's and removing any duplicates. Array of integers
+  const jobListWithDuplicates = data.map(record => record.job);
+  const jobListWithDuplicatesRemoved = [...new Set(jobListWithDuplicates)];
 
-	return jobListWithDuplicatesRemoved.map(jobId => {
-		let groupedRecords = []
+  return jobListWithDuplicatesRemoved.map(jobId => {
+    let groupedRecords = [];
 
-		data.map(record => {
-			if (record.job === jobId) {
-				groupedRecords = [...groupedRecords, record]
-			}
-			return record
-		})
-		return groupedRecords
-	})
-}
+    data.map(record => {
+      if (record.job === jobId) {
+        groupedRecords = [...groupedRecords, record];
+      }
+      return record;
+    });
+    return groupedRecords;
+  });
+};
 
 /**
  * Each array within and array is a job on a company, calculates charged, payments, and net for perticular job
@@ -78,48 +80,48 @@ const groupByJob = data => {
  * @returns [[],[],[]] returns array of arrays, each inner array is a job. details of the job calculations are pushed onto each object
  */
 const calculateTotals = sortedRecords => {
-	let groupDetail = ''
-	sortedRecords.map(groupedItemList => {
-		let details = {
-			detailDate: '',
-			detailType: '',
-			jobDescription: 0,
-			charges: [],
-			discount: 0,
-			writeoff: 0,
-			net: [],
-			payment: [],
-			rawCharges: 0,
-		}
+  let groupDetail = '';
+  sortedRecords.map(groupedItemList => {
+    let details = {
+      detailDate: '',
+      detailType: '',
+      jobDescription: 0,
+      charges: [],
+      discount: 0,
+      writeoff: 0,
+      net: [],
+      payment: [],
+      rawCharges: 0,
+    };
 
-		return groupedItemList.map(record => {
-			if (record.transactionType === 'Charge') {
-				details.charges = [...details.charges, record.totalTransaction]
-			} else if (record.transactionType === 'Payment') {
-				details.payment = [...details.payment, record.totalTransaction]
-			}
+    return groupedItemList.map(record => {
+      if (record.transactionType === 'Charge') {
+        details.charges = [...details.charges, record.totalTransaction];
+      } else if (record.transactionType === 'Payment') {
+        details.payment = [...details.payment, record.totalTransaction];
+      }
 
-			// Once the last record in the group is reach perform the calculations
-			if (record === groupedItemList[groupedItemList.length - 1]) {
-				const totalCharges = details.charges.reduce((prev, curr) => prev + curr, 0)
-				const totalPayments = details.payment.reduce((prev, curr) => prev + curr, 0)
+      // Once the last record in the group is reach perform the calculations
+      if (record === groupedItemList[groupedItemList.length - 1]) {
+        const totalCharges = details.charges.reduce((prev, curr) => prev + curr, 0);
+        const totalPayments = details.payment.reduce((prev, curr) => prev + curr, 0);
 
-				// Making final calculations at job level, and pushing to return object. Completes the object to be used for invoice details
-				details.detailDate = dayjs().startOf('days').format('MM/DD/YYYY HH:mm:ss')
-				details.detailType = record.transactionType
-				details.jobDescription = record.defaultDescription
-				details.charges = totalCharges
-				details.discount = 0
-				details.net = totalCharges - totalPayments
-				details.payment = totalPayments
-				// pushing details to return for overall func
-				groupDetail = [...groupDetail, details]
-			}
-			return record
-		})
-	})
-	return groupDetail
-}
+        // Making final calculations at job level, and pushing to return object. Completes the object to be used for invoice details
+        details.detailDate = dayjs().startOf('days').format('MM/DD/YYYY HH:mm:ss');
+        details.detailType = record.transactionType;
+        details.jobDescription = record.defaultDescription;
+        details.charges = totalCharges;
+        details.discount = 0;
+        details.net = totalCharges - totalPayments;
+        details.payment = totalPayments;
+        // pushing details to return for overall func
+        groupDetail = [...groupDetail, details];
+      }
+      return record;
+    });
+  });
+  return groupDetail;
+};
 
 /**
  * Creates invoice, and Invoice details objects for DB insert
@@ -129,56 +131,56 @@ const calculateTotals = sortedRecords => {
  * @returns An array of objects [{},[{},{}]] first object is invoice, second is an array of objects. Each object is a job
  */
 const formatInvoiceInserts = (calculatedJobs, contactRecord, lastInvoiceNumber) => {
-	const invoice = {
-		company: null,
-		invoiceNumber: null,
-		contactName: null,
-		address1: '',
-		address2: '',
-		address3: '',
-		address4: '',
-		address5: '',
-		address6: '',
-		beginningBalance: 0,
-		totalPayments: 0,
-		totalNewCharges: 0,
-		endingBalance: 0,
-		unpaidBalance: 0,
-		invoiceDate: null,
-		paymentDueDate: null,
-		dataEndDate: null,
-	}
+  const invoice = {
+    company: null,
+    invoiceNumber: null,
+    contactName: null,
+    address1: '',
+    address2: '',
+    address3: '',
+    address4: '',
+    address5: '',
+    address6: '',
+    beginningBalance: 0,
+    totalPayments: 0,
+    totalNewCharges: 0,
+    endingBalance: 0,
+    unpaidBalance: 0,
+    invoiceDate: null,
+    paymentDueDate: null,
+    dataEndDate: null,
+  };
 
-	// Forms and calculates the invoice
-	calculatedJobs.forEach(job => {
-		invoice.company = contactRecord.oid
-		invoice.invoiceNumber = lastInvoiceNumber
-		invoice.contactName = contactRecord.firstName + contactRecord.lastName
-		invoice.address1 = contactRecord.companyName
-		invoice.address2 = contactRecord.firstName + contactRecord.lastName
-		invoice.address3 = contactRecord.address1
-		invoice.address4 = `${contactRecord.city}, ${contactRecord.state} ${contactRecord.zip}`
-		invoice.address5 = null
-		invoice.address6 = null
-		invoice.beginningBalance = contactRecord.beginningBalance
-		invoice.totalPayments = job.payment + invoice.totalPayments
-		invoice.totalNewCharges = job.charges + invoice.totalNewCharges
-		invoice.endingBalance = invoice.beginningBalance + invoice.totalNewCharges - invoice.totalPayments
-		invoice.unpaidBalance = invoice.beginningBalance === 0 ? 0 : invoice.beginningBalance - invoice.totalPayments
-		invoice.invoiceDate = job.detailDate
-		invoice.paymentDueDate = job.detailDate
-		invoice.dataEndDate = job.detailDate
-		return job
-	})
+  // Forms and calculates the invoice
+  calculatedJobs.forEach(job => {
+    invoice.company = contactRecord.oid;
+    invoice.invoiceNumber = lastInvoiceNumber;
+    invoice.contactName = contactRecord.firstName + contactRecord.lastName;
+    invoice.address1 = contactRecord.companyName;
+    invoice.address2 = contactRecord.firstName + contactRecord.lastName;
+    invoice.address3 = contactRecord.address1;
+    invoice.address4 = `${contactRecord.city}, ${contactRecord.state} ${contactRecord.zip}`;
+    invoice.address5 = null;
+    invoice.address6 = null;
+    invoice.beginningBalance = contactRecord.beginningBalance;
+    invoice.totalPayments = job.payment + invoice.totalPayments;
+    invoice.totalNewCharges = job.charges + invoice.totalNewCharges;
+    invoice.endingBalance = invoice.beginningBalance + invoice.totalNewCharges - invoice.totalPayments;
+    invoice.unpaidBalance = invoice.beginningBalance === 0 ? 0 : invoice.beginningBalance - invoice.totalPayments;
+    invoice.invoiceDate = job.detailDate;
+    invoice.paymentDueDate = job.detailDate;
+    invoice.dataEndDate = job.detailDate;
+    return job;
+  });
 
-	// Add a sync'd invoice number to detail and invoice
-	const invoiceDetails = calculatedJobs.map(job => {
-		const detail = { invoice, ...job }
-		detail.invoice = lastInvoiceNumber
-		return detail
-	})
-	return { invoice, invoiceDetails }
-}
+  // Add a sync'd invoice number to detail and invoice
+  const invoiceDetails = calculatedJobs.map(job => {
+    const detail = { invoice, ...job };
+    detail.invoice = lastInvoiceNumber;
+    return detail;
+  });
+  return { invoice, invoiceDetails };
+};
 
 /**
  * Forms contact object to update contact amounts on account.
@@ -188,16 +190,16 @@ const formatInvoiceInserts = (calculatedJobs, contactRecord, lastInvoiceNumber) 
  */
 
 const updateContactFinancials = (contactRecord, invoice) => {
-	contactRecord = {
-		...contactRecord,
-		newBalance: false,
-		balanceChanged: false,
-		beginningBalance: invoice.endingBalance,
-		statementBalance: invoice.endingBalance,
-	}
+  contactRecord = {
+    ...contactRecord,
+    newBalance: false,
+    balanceChanged: false,
+    beginningBalance: invoice.endingBalance,
+    statementBalance: invoice.endingBalance,
+  };
 
-	return contactRecord
-}
+  return contactRecord;
+};
 
 /**
  * Psuedo
