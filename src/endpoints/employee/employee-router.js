@@ -28,6 +28,18 @@ employeeRouter.route('/allActiveEmployees').get(async (req, res) => {
   });
 });
 
+employeeRouter.route('/findEmployee/:employeeId').get(async (req, res) => {
+  const db = req.app.get('db');
+  const employeeId = Number(req.params.employeeId);
+
+  employeeService.getEmployee(db, employeeId).then(employee => {
+    res.send({
+      employee,
+      status: 200,
+    });
+  });
+});
+
 /**
  * New Employee
  */
