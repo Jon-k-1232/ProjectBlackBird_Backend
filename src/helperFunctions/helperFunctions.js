@@ -37,6 +37,21 @@ const helperFunctions = {
     const prevDate = dayjs().subtract(time, 'days').startOf('days').format('MM/DD/YYYY HH:mm:ss');
     return { prevDate, currDate };
   },
+
+  /**
+   * Sorts and array by a given object property
+   * @param {*} arrayToSort Array to Objects
+   * @param {*} sortProperty a property that exists on object
+   * @returns Array of objects sorted
+   */
+  sortArrayByObjectProperty: (arrayToSort, sortProperty) => {
+    arrayToSort.sort((a, b) => {
+      const dateA = new Date(a[sortProperty]);
+      const dateB = new Date(b[sortProperty]);
+      return dateA - dateB;
+    });
+    return arrayToSort;
+  },
 };
 
 module.exports = helperFunctions;

@@ -25,7 +25,7 @@ const createInvoiceService = {
    * @param {*} companyId
    * @returns
    */
-  getAllTransactions(db, lastInvoiceDate, now, companyId) {
+  getCompanyTransactionsBetweenDates(db, lastInvoiceDate, now, companyId) {
     return db
       .select()
       .from('transaction')
@@ -42,6 +42,16 @@ const createInvoiceService = {
    */
   insertInvoiceDetails(db, invoice) {
     return db.insert(invoice).returning('*').into('invoiceDetail');
+  },
+
+  getLastInvoice(db) {
+    const lastInvoiceNumber = async () => {
+      const allInvoiceNumbers = await db.select('invoiceNumber').from('invoice').where('invoiceNumber', '>', '');
+      const lastInvoice = allInvoiceNumbers.pop();
+      return Number(lastInvoice.invoiceNumber);
+    };
+
+    return lastInvoiceNumber();
   },
 };
 
