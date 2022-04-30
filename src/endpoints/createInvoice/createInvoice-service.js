@@ -44,7 +44,7 @@ const createInvoiceService = {
     return db.insert(invoice).returning('*').into('invoiceDetail');
   },
 
-  getLastInvoice(db) {
+  getLastInvoiceNumberInDB(db) {
     const lastInvoiceNumber = async () => {
       const allInvoiceNumbers = await db.select('invoiceNumber').from('invoice').where('invoiceNumber', '>', '');
       const lastInvoice = allInvoiceNumbers.pop();

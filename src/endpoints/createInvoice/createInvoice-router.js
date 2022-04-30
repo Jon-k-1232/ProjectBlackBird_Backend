@@ -52,8 +52,13 @@ createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
 createInvoiceRouter.route('/test/tests').get(async (req, res) => {
   const db = req.app.get('db');
 
+  // Keep readyToBillContacts here as later a single company will be passed on a separate endpoint, using same code
   const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
+  // ToDo -> Maybe want to send back to allow user to select, or deselect which invoices to send.
+
   const newInvoices = await createNewInvoice(readyToBillContacts, db);
+  // ToDo create PDF off each returned invoice
+  // ToDo create a zip file in a file system
 
   res.send({ newInvoices });
 });
@@ -64,38 +69,90 @@ module.exports = createInvoiceRouter;
 
 const createNewInvoice = async (readyToBillContacts, db) => {
   const companyInvoices = readyToBillContacts.map(async (contactRecord, i) => {
-    const lastInvoice = await createInvoiceService.getLastInvoice(db);
-    const nextInvoiceNumber = lastInvoice + 1 + i;
-    const companyInvoices = await invoiceService.getCompanyInvoices(db, contactRecord.oid);
-    const invoiceOfCompanySortedByDate = helperFunctions.sortArrayByObjectProperty(companyInvoices, 'invoiceDate');
-    const time = helperFunctions.timeSubtractionFromTodayCalculator(365);
-    const lastInvoiceDate = companyInvoices.length === 0 ? time.prevDate : invoiceOfCompanySortedByDate.pop().invoiceDate;
+    const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
+    const nextInvoiceNumber = lastInvoiceNumberInDb + i + 1;
+    const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
+    const invoiceTimes = helperFunctions.timeSubtractionFromTodayCalculator(730);
 
-    // ToDo check if a company has new transactions. If no transactions array length will === 0, we know the company has a balance due though as it came up in initial query as having a balance. Calc Interest. If no then proceed to send bill.
+    // Getting company invoices
+    const companyInvoices = await invoiceService.getCompanyInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
+    const invoicesOfCompanySortedByDate = helperFunctions.sortArrayByObjectProperty(companyInvoices, 'invoiceDate');
+
+    // Checking invoices for credits, or amounts unpaid
+    const outstandingCompanyInvoices = findOutstandingInvoices(invoicesOfCompanySortedByDate);
+    const interestTransaction = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
+    // ToDo if invoices have a balance calculate interest and insert into transactions. bring old invoices forward to reflect invoice numbers, payments, charges, and interest calculated on a new invoice.
+
+    // Getting transactions occurring between last billing cycle and today
+    const lastCompanyInvoice = invoicesOfCompanySortedByDate.pop();
+    const lastCompanyInvoiceDate = companyInvoices.length === 0 ? transactionTimes.prevDate : lastCompanyInvoice.invoiceDate;
     const newCompanyTransactions = await createInvoiceService.getCompanyTransactionsBetweenDates(
       db,
-      lastInvoiceDate,
-      time.currDate,
+      lastCompanyInvoiceDate,
+      transactionTimes.currDate,
       contactRecord.oid,
     );
 
-    // ToDo Check to see if below function is working correctly. https://data.page/json/csv
-    // const aggregatedTotalsByJob = aggregateTotalsByJob(newCompanyTransactions);
-    // const newTransactions = [...newCompanyTransactions];
+    // Aggregates transactions. Multiple transactions for the same job will add together and output with a single transaction, Each job will have a single transaction
+    const aggregatedTransactionTotalsByJob = aggregateTotalsByJob(newCompanyTransactions);
 
-    // const grouped = groupByJob(newTransactions);
+    // ToDo Combine transactions with any outstanding invoices to start to form invoice object.
+
+    // ToDO Each job should have a separate insert into invoiceDetails showing job totals.
+    // ToDo Create invoice object if needed, may handle in aggregatedTotals.
+    // ToDo Update Contact with balance and amounts
+    // ToDo Insert invoice into invoice table.
+    // ToDo Return -> single company invoice with interest, any prior invoice charges, dates, and new job charges.
+
     // const calculatedJobs = calculateTotals(grouped);
     // const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, nextInvoiceNumber);
     // const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
 
-    return newCompanyTransactions;
+    return aggregatedTransactionTotalsByJob;
   });
 
   return Promise.all(companyInvoices);
 };
 
-// ToDo Check if working.
-// ???????? ******************************* MAYBE WORKING ***************
+/**
+ * Calculates billing interest. Reducing amount model, per annum, rate = 18%
+ * @param {*} outstandingCompanyInvoices
+ * @returns
+ */
+const calculateBillingInterest = outstandingCompanyInvoices => {
+  // ToDo CREATE FX
+  return;
+};
+
+/**
+ * Finds invoices that have either credits, or outstanding amounts.
+ * @param {*} invoices [{},{},{}]
+ * @returns [{},{},{}]
+ */
+const findOutstandingInvoices = invoices => {
+  return invoices.map(invoice => {
+    const { beginningBalance, totalPayments, totalNewCharges, endingBalance } = invoice;
+    const totalCharges = beginningBalance + totalNewCharges;
+    // totalPayments is a negative number in DB
+    const net = totalCharges + totalPayments;
+
+    // Scenario where the charges are more than payments
+    if (net >= 0.01 || endingBalance >= 0.01) {
+      return invoice;
+
+      // Scenario where payments are more than balance resulting in credit
+    } else if (net <= -0.01 || endingBalance <= -0.01) {
+      return invoice;
+    }
+    return;
+  });
+};
+
+/**
+ * Finds same job within company transactions and adds matching jobs together.
+ * @param {*} newCompanyTransactions
+ * @returns [{},{},{}]
+ */
 const aggregateTotalsByJob = newCompanyTransactions => {
   const companyTransactions = [...newCompanyTransactions];
 
@@ -104,8 +161,10 @@ const aggregateTotalsByJob = newCompanyTransactions => {
       const foundJobGroupTransactionIndex = previousTransactions.findIndex(prevTrans => prevTrans.job === currentTransaction.job);
       const foundJobGroupTransaction = previousTransactions[foundJobGroupTransactionIndex];
 
+      // Combining multiple transactions for same job. ONLY CALCULATING TRANSACTION TOTAL AT THIS TIME. LAST OBJECT WILL STAY SAME, ONLY UPDATING THE TRANSACTION TOTAL PROPERTY
       if (foundJobGroupTransactionIndex !== -1) {
         currentTransaction.totalTransaction = currentTransaction.totalTransaction + foundJobGroupTransaction.totalTransaction;
+        currentTransaction.quantity = currentTransaction.quantity + foundJobGroupTransaction.quantity;
         previousTransactions.splice(foundJobGroupTransactionIndex, 1);
       }
     }
@@ -114,29 +173,6 @@ const aggregateTotalsByJob = newCompanyTransactions => {
     return previousTransactions;
   }, []);
 };
-
-// /**
-//  * Groups Array of objects by job.
-//  * @param {*} data each object must have job property
-//  * @returns [[],[]] Array of arrays each array is a grouping by job
-//  */
-// const groupByJob = data => {
-//   // Making a list of Job Id's and removing any duplicates. Array of integers
-//   const jobListWithDuplicates = data.map(record => record.job);
-//   const jobListWithDuplicatesRemoved = [...new Set(jobListWithDuplicates)];
-
-//   return jobListWithDuplicatesRemoved.map(jobId => {
-//     let groupedRecords = [];
-
-//     data.map(record => {
-//       if (record.job === jobId) {
-//         groupedRecords = [...groupedRecords, record];
-//       }
-//       return record;
-//     });
-//     return groupedRecords;
-//   });
-// };
 
 // /**
 //  * Each array within and array is a job on a company, calculates charged, payments, and net for perticular job

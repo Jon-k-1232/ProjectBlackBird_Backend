@@ -1,3 +1,5 @@
+const dayjs = require('dayjs');
+
 const invoiceService = {
   /**
    * Gets all invoices
@@ -16,6 +18,11 @@ const invoiceService = {
    */
   getCompanyInvoices(db, companyId) {
     return db.select().from('invoice').whereIn('company', [companyId]);
+  },
+
+  getCompanyInvoicesBetweenDates(db, companyId, invoiceTimes) {
+    const { prevDate, currDate } = invoiceTimes;
+    return db.select().from('invoice').whereIn('company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
   },
 
   /**
