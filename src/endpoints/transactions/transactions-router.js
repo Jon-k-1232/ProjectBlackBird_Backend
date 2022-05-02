@@ -104,6 +104,8 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
         contact.newBalance = true;
         contact.balanceChanged = true;
       } else if (newTransaction.transactionType === 'Payment') {
+        // ToDo Need have where payment gets linked to transaction with invoice number in 'invoice' column
+        // ToDo Continueing- need to have
         contact.currentBalance = contact.currentBalance - newTransaction.totalTransaction;
         contact.newBalance = true;
         contact.balanceChanged = true;

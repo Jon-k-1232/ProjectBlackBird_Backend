@@ -22,7 +22,7 @@ const invoiceService = {
 
   getCompanyInvoicesBetweenDates(db, companyId, invoiceTimes) {
     const { prevDate, currDate } = invoiceTimes;
-    return db.select().from('invoice').whereIn('company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
+    return db.select().from('invoice').whereIn('invoice.company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
   },
 
   /**

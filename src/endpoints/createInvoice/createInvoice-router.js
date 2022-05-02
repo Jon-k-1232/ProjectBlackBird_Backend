@@ -4,52 +4,20 @@ const createInvoiceService = require('./createInvoice-service');
 const invoiceService = require('../invoice/invoice-service');
 const contactService = require('../contacts/contacts-service');
 const helperFunctions = require('../../helperFunctions/helperFunctions');
+const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const dayjs = require('dayjs');
+const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../config');
 
-// ToDo needs refactor and Error handleing
+createInvoiceRouter.route('/download').get(async (req, res) => {
+  // here we assigned the name to our downloaded file!
+  const file_after_download = 'downloaded_file.zip';
 
-// Gets most recent 'pay to' record
-createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
-  const db = req.app.get('db');
-
-  // Gets a list of contacts where balance has changed since last billing cycle.[{},{}]array of objects
-  const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
-
-  // Loop through each contact
-  readyToBillContacts.map((contactRecord, i) => {
-    // Gets latest invoice and increments based on index
-    createInvoiceService.getInvoiceNumber(db).then(lastInvoice => {
-      let lastInvoiceNumber = Number(lastInvoice.pop().invoiceNumber) + 1 + i;
-
-      // Get most recent invoice for perticular contact
-      invoiceService.getCompanyInvoices(db, contactRecord.oid).then(mostRecentInvoice => {
-        // returns todays date and date of prior based on passed arg
-        const time = helperFunctions.timeSubtractionFromTodayCalculator(365);
-        const lastInvoiceDate = mostRecentInvoice.length === 0 ? time.prevDate : mostRecentInvoice[0].invoiceDate;
-
-        // Get all transactions, with linked jobs between last invoice date and now.
-        createInvoiceService
-          .getAllTransactions(db, lastInvoiceDate, time.currDate, contactRecord.oid)
-          .then(allTransactionsWithLinkedJobs => {
-            const grouped = groupByJob(allTransactionsWithLinkedJobs);
-            const calculatedJobs = calculateTotals(grouped);
-            const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, lastInvoiceNumber);
-            const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
-
-            // Insert all items into respective tables
-            invoiceService.insertNewInvoice(db, newInvoice.invoice).then(() => {
-              createInvoiceService.insertInvoiceDetails(db, newInvoice.invoiceDetails).then(() => {
-                contactService.updateContact(db, contactRecord.oid, updatedContactFinancials);
-              });
-            });
-          });
-      });
-    });
-    return contactRecord;
-  });
+  res.set('Content-Type', 'application/octet-stream');
+  res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
+  res.download(`${__dirname}/pdf_holder/${dayjs().format('YYYY-MM-DD')}/output.zip`);
 });
 
-createInvoiceRouter.route('/test/tests').get(async (req, res) => {
+createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
   const db = req.app.get('db');
 
   // Keep readyToBillContacts here as later a single company will be passed on a separate endpoint, using same code
@@ -70,7 +38,7 @@ module.exports = createInvoiceRouter;
 const createNewInvoice = async (readyToBillContacts, db) => {
   const companyInvoices = readyToBillContacts.map(async (contactRecord, i) => {
     const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
-    const nextInvoiceNumber = lastInvoiceNumberInDb + i + 1;
+    const nextInvoiceNumber = lastInvoiceNumberInDb + 1 + i;
     const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
     const invoiceTimes = helperFunctions.timeSubtractionFromTodayCalculator(730);
 
@@ -78,12 +46,14 @@ const createNewInvoice = async (readyToBillContacts, db) => {
     const companyInvoices = await invoiceService.getCompanyInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
     const invoicesOfCompanySortedByDate = helperFunctions.sortArrayByObjectProperty(companyInvoices, 'invoiceDate');
 
-    // Checking invoices for credits, or amounts unpaid
+    // Checking invoices for credits, or amounts unpaid -> insert into 'beginning balance' of 'invoice' table
     const outstandingCompanyInvoices = findOutstandingInvoices(invoicesOfCompanySortedByDate);
-    const interestTransaction = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
-    // ToDo if invoices have a balance calculate interest and insert into transactions. bring old invoices forward to reflect invoice numbers, payments, charges, and interest calculated on a new invoice.
 
-    // Getting transactions occurring between last billing cycle and today
+    // Calculate interest
+    const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
+    // ToDo interest insert into transactions.
+
+    // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
     const lastCompanyInvoice = invoicesOfCompanySortedByDate.pop();
     const lastCompanyInvoiceDate = companyInvoices.length === 0 ? transactionTimes.prevDate : lastCompanyInvoice.invoiceDate;
     const newCompanyTransactions = await createInvoiceService.getCompanyTransactionsBetweenDates(
@@ -96,32 +66,25 @@ const createNewInvoice = async (readyToBillContacts, db) => {
     // Aggregates transactions. Multiple transactions for the same job will add together and output with a single transaction, Each job will have a single transaction
     const aggregatedTransactionTotalsByJob = aggregateTotalsByJob(newCompanyTransactions);
 
-    // ToDo Combine transactions with any outstanding invoices to start to form invoice object.
-
-    // ToDO Each job should have a separate insert into invoiceDetails showing job totals.
-    // ToDo Create invoice object if needed, may handle in aggregatedTotals.
-    // ToDo Update Contact with balance and amounts
+    // ToDO Each Job that appeared on job should have a separate insert into invoiceDetails showing job totals.
+    // insertJobsIntoDB(aggregatedTransactionTotalsByJob, nextInvoiceNumber);
+    // ToDo Total the ending balance up. Note: Need to account for credits on account. aggregateTotalsByJob = new transactions. outstandingCompanyInvoices= search for credits and outstanding bills. nextInvoiceNumber= invoice Number
+    // const newlyCreatedInvoice = calculateTotals(aggregateTotalsByJob, outstandingCompanyInvoices, nextInvoiceNumber);
     // ToDo Insert invoice into invoice table.
-    // ToDo Return -> single company invoice with interest, any prior invoice charges, dates, and new job charges.
+    // insertInvoiceIntoDB();
+    // ToDo Update 'company' table Contact with balance and amounts, and booleans
+    // const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
+    // ToDo FORM OBJECT TO BE PRINTED ON INVOICE. Totals each catagory: Beginning Balance, TotalPayments, Total New charges, ending balance.
+    // const createPDF(newlyCreatedInvoice);
 
+    // ***********
     // const calculatedJobs = calculateTotals(grouped);
     // const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, nextInvoiceNumber);
-    // const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
 
-    return aggregatedTransactionTotalsByJob;
+    return interestTransactions;
   });
 
   return Promise.all(companyInvoices);
-};
-
-/**
- * Calculates billing interest. Reducing amount model, per annum, rate = 18%
- * @param {*} outstandingCompanyInvoices
- * @returns
- */
-const calculateBillingInterest = outstandingCompanyInvoices => {
-  // ToDo CREATE FX
-  return;
 };
 
 /**
@@ -136,16 +99,49 @@ const findOutstandingInvoices = invoices => {
     // totalPayments is a negative number in DB
     const net = totalCharges + totalPayments;
 
-    // Scenario where the charges are more than payments
-    if (net >= 0.01 || endingBalance >= 0.01) {
-      return invoice;
-
-      // Scenario where payments are more than balance resulting in credit
-    } else if (net <= -0.01 || endingBalance <= -0.01) {
+    // Scenario where the balance is more than payments, and or there is a credit on account
+    if (net >= 0.01 || endingBalance >= 0.01 || net <= -0.01 || endingBalance <= -0.01) {
       return invoice;
     }
     return;
   });
+};
+
+/**
+ * Calculates billing interest. Reducing amount model, per annum, rate = 18%
+ * @param {*} outstandingCompanyInvoices
+ * @returns[{},{},{}] and array of objects. each object is a interest record in 'transaction' table form
+ */
+const calculateBillingInterest = outstandingCompanyInvoices => {
+  const calculatedInterest = balance => Number(((balance * defaultInterestRate) / defaultInterestMonthsInYear).toFixed(2));
+
+  const interestRecords = outstandingCompanyInvoices.map(invoice => {
+    if (invoice !== undefined && invoice.endingBalance >= 0.01) {
+      // Forming Object to insert to transaction
+      const interestTransaction = {
+        oid: invoice.company,
+        company: invoice.company,
+        job: 1,
+        employee: null,
+        transactionType: 'Interest',
+        transactionDate: dayjs().format('MM/DD/YYYY HH:mm:ss'),
+        quantity: 1,
+        unitOfMeasure: 'Each',
+        unitTransaction: calculatedInterest(invoice.endingBalance),
+        totalTransaction: calculatedInterest(invoice.endingBalance),
+        discount: 0,
+        invoice: invoice.invoiceNumber,
+        paymentApplied: false,
+        ignoreInAgeing: null,
+      };
+
+      return interestTransaction;
+    }
+
+    return;
+  });
+
+  return interestRecords;
 };
 
 /**
@@ -164,7 +160,6 @@ const aggregateTotalsByJob = newCompanyTransactions => {
       // Combining multiple transactions for same job. ONLY CALCULATING TRANSACTION TOTAL AT THIS TIME. LAST OBJECT WILL STAY SAME, ONLY UPDATING THE TRANSACTION TOTAL PROPERTY
       if (foundJobGroupTransactionIndex !== -1) {
         currentTransaction.totalTransaction = currentTransaction.totalTransaction + foundJobGroupTransaction.totalTransaction;
-        currentTransaction.quantity = currentTransaction.quantity + foundJobGroupTransaction.quantity;
         previousTransactions.splice(foundJobGroupTransactionIndex, 1);
       }
     }
@@ -323,3 +318,47 @@ const aggregateTotalsByJob = newCompanyTransactions => {
 //  * 		Insert 'invoiceDetails' with totals for jobs, linked to 'invoice' by invoice number
 //  * 		Insert 'company' with updated totals
 //  */
+
+/*
+// Gets most recent 'pay to' record
+createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
+  const db = req.app.get('db');
+
+  // Gets a list of contacts where balance has changed since last billing cycle.[{},{}]array of objects
+  const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
+
+  // Loop through each contact
+  readyToBillContacts.map((contactRecord, i) => {
+    // Gets latest invoice and increments based on index
+    createInvoiceService.getInvoiceNumber(db).then(lastInvoice => {
+      let lastInvoiceNumber = Number(lastInvoice.pop().invoiceNumber) + 1 + i;
+
+      // Get most recent invoice for perticular contact
+      invoiceService.getCompanyInvoices(db, contactRecord.oid).then(mostRecentInvoice => {
+        // returns todays date and date of prior based on passed arg
+        const time = helperFunctions.timeSubtractionFromTodayCalculator(365);
+        const lastInvoiceDate = mostRecentInvoice.length === 0 ? time.prevDate : mostRecentInvoice[0].invoiceDate;
+
+        // Get all transactions, with linked jobs between last invoice date and now.
+        createInvoiceService
+          .getAllTransactions(db, lastInvoiceDate, time.currDate, contactRecord.oid)
+          .then(allTransactionsWithLinkedJobs => {
+            const grouped = groupByJob(allTransactionsWithLinkedJobs);
+            const calculatedJobs = calculateTotals(grouped);
+            const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, lastInvoiceNumber);
+            const updatedContactFinancials = updateContactFinancials(contactRecord, newInvoice.invoice);
+
+            // Insert all items into respective tables
+            invoiceService.insertNewInvoice(db, newInvoice.invoice).then(() => {
+              createInvoiceService.insertInvoiceDetails(db, newInvoice.invoiceDetails).then(() => {
+                contactService.updateContact(db, contactRecord.oid, updatedContactFinancials);
+              });
+            });
+          });
+      });
+    });
+    return contactRecord;
+  });
+});
+
+*/
