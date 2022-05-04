@@ -48,7 +48,6 @@ const createNewInvoice = async (readyToBillContacts, db) => {
 
     // Checking invoices for credits, or amounts unpaid -> insert into 'beginning balance' of 'invoice' table
     const outstandingCompanyInvoices = findOutstandingInvoices(invoicesOfCompanySortedByDate);
-
     // Calculate interest
     const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
     // ToDo interest insert into transactions.
@@ -63,13 +62,19 @@ const createNewInvoice = async (readyToBillContacts, db) => {
       contactRecord.oid,
     );
 
-    // Aggregates transactions. Multiple transactions for the same job will add together and output with a single transaction, Each job will have a single transaction
-    const aggregatedTransactionTotalsByJob = aggregateTotalsByJob(newCompanyTransactions);
+    // Aggregates transactions. Multiple transactions for the same job will add together and output with a single job, Each job will have totals
+    const aggregatedTransactionTotalsByJob = aggregateTransactionTotalsByJob(newCompanyTransactions);
+    const aggregatedAndSortedTotals = aggregateAndSortRemainingTotals(aggregatedTransactionTotalsByJob);
 
-    // ToDO Each Job that appeared on job should have a separate insert into invoiceDetails showing job totals.
+    // ToDO THINK ABOUT THIS STEP IF NEEDED LATER IN PROCESS... Each Job that appeared on job should have a separate insert into invoiceDetails showing job totals.
     // insertJobsIntoDB(aggregatedTransactionTotalsByJob, nextInvoiceNumber);
     // ToDo Total the ending balance up. Note: Need to account for credits on account. aggregateTotalsByJob = new transactions. outstandingCompanyInvoices= search for credits and outstanding bills. nextInvoiceNumber= invoice Number
-    // const newlyCreatedInvoice = calculateTotals(aggregateTotalsByJob, outstandingCompanyInvoices, nextInvoiceNumber);
+    // const newlyCreatedInvoice = calculateTotals(
+    //   contactRecord,
+    //   aggregateTransactionTotalsByJob,
+    //   outstandingCompanyInvoices,
+    //   nextInvoiceNumber,
+    // );
     // ToDo Insert invoice into invoice table.
     // insertInvoiceIntoDB();
     // ToDo Update 'company' table Contact with balance and amounts, and booleans
@@ -81,10 +86,73 @@ const createNewInvoice = async (readyToBillContacts, db) => {
     // const calculatedJobs = calculateTotals(grouped);
     // const newInvoice = formatInvoiceInserts(calculatedJobs, contactRecord, nextInvoiceNumber);
 
-    return interestTransactions;
+    return aggregatedAndSortedTotals;
   });
 
   return Promise.all(companyInvoices);
+};
+
+// *************************************************************************
+// const calculateTotals = (contactRecord, aggregateTotalsByJob, outstandingCompanyInvoices, nextInvoiceNumber) => {
+//   // aggregate totals
+
+//   return newBill;
+// };
+
+const aggregateAndSortRemainingTotals = aggregatedTransactionTotalsByJob => {
+  return aggregatedTransactionTotalsByJob.map(companyJob => {
+    if (companyJob !== undefined && companyJob.allJobTransactions.length) {
+      // additional properties to push onto aggregatedTotals
+      let newTotalsPerJob = {
+        ...companyJob,
+        totalPayments: 0,
+        paymentTransactions: [],
+        totalAdjustments: 0,
+        adjustmentTransactions: [],
+        totalWriteOffs: 0,
+        writeOffTransactions: [],
+        totalInterest: 0,
+        interestTransactions: [],
+        totalCharges: 0,
+        chargeTransactions: [],
+        totalTime: 0,
+        timeTransactions: [],
+      };
+
+      companyJob.allJobTransactions.map(transaction => {
+        switch (transaction.transactionType) {
+          case 'Payment':
+            newTotalsPerJob.totalPayments = (Number(newTotalsPerJob.totalPayments) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.paymentTransactions.push(transaction);
+            break;
+          case 'Adjustment':
+            newTotalsPerJob.totalAdjustments = (Number(newTotalsPerJob.totalAdjustments) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.adjustmentTransactions.push(transaction);
+            break;
+          case 'Writeoff':
+            newTotalsPerJob.totalWriteOffs = (Number(newTotalsPerJob.totalWriteOffs) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.writeoffTransactions.push(transaction);
+            break;
+          case 'Interest':
+            newTotalsPerJob.totalInterest = (Number(newTotalsPerJob.totalInterest) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.interestTransactions.push(transaction);
+            break;
+          case 'Charge':
+            newTotalsPerJob.totalCharges = (Number(newTotalsPerJob.totalCharges) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.chargeTransactions.push(transaction);
+            break;
+          case 'Time':
+            newTotalsPerJob.totalTime = (Number(newTotalsPerJob.totalTime) + Number(transaction.totalTransaction)).toFixed(2);
+            newTotalsPerJob.timeTransactions.push(transaction);
+            break;
+          default:
+            -1;
+        }
+      });
+      return newTotalsPerJob;
+    }
+    return newTotalsPerJob;
+  });
 };
 
 /**
@@ -93,7 +161,7 @@ const createNewInvoice = async (readyToBillContacts, db) => {
  * @returns [{},{},{}]
  */
 const findOutstandingInvoices = invoices => {
-  return invoices.map(invoice => {
+  return invoices.filter(invoice => {
     const { beginningBalance, totalPayments, totalNewCharges, endingBalance } = invoice;
     const totalCharges = beginningBalance + totalNewCharges;
     // totalPayments is a negative number in DB
@@ -103,7 +171,6 @@ const findOutstandingInvoices = invoices => {
     if (net >= 0.01 || endingBalance >= 0.01 || net <= -0.01 || endingBalance <= -0.01) {
       return invoice;
     }
-    return;
   });
 };
 
@@ -145,26 +212,48 @@ const calculateBillingInterest = outstandingCompanyInvoices => {
 };
 
 /**
- * Finds same job within company transactions and adds matching jobs together.
+ * Finds matching job transactions within company transactions, groups and adds together into new object.
  * @param {*} newCompanyTransactions
- * @returns [{},{},{}]
+ * @returns [{},{},{}] Each object is a new job record.
  */
-const aggregateTotalsByJob = newCompanyTransactions => {
-  const companyTransactions = [...newCompanyTransactions];
+const aggregateTransactionTotalsByJob = newCompanyTransactions => {
+  return newCompanyTransactions.reduce((previousTransactions, currentTransaction) => {
+    // Company may not have any transactions
+    if (currentTransaction !== undefined) {
+      let newObject = {
+        job: currentTransaction.job,
+        company: currentTransaction.company,
+        employee: currentTransaction.employee,
+        description: currentTransaction.description,
+        overallJobTotal: Number(currentTransaction.totalTransaction).toFixed(2),
+        allJobTransactions: [currentTransaction],
+      };
 
-  return companyTransactions.reduce((previousTransactions, currentTransaction) => {
-    if (previousTransactions.length) {
-      const foundJobGroupTransactionIndex = previousTransactions.findIndex(prevTrans => prevTrans.job === currentTransaction.job);
-      const foundJobGroupTransaction = previousTransactions[foundJobGroupTransactionIndex];
+      // If previous has any items start searching for job matches to group
+      if (previousTransactions.length) {
+        // Find matching job in previous items
+        const foundJobGroupTransactionIndex = previousTransactions.findIndex(prevTrans => prevTrans.job === currentTransaction.job);
+        const foundJobGroupTransaction = previousTransactions[foundJobGroupTransactionIndex];
 
-      // Combining multiple transactions for same job. ONLY CALCULATING TRANSACTION TOTAL AT THIS TIME. LAST OBJECT WILL STAY SAME, ONLY UPDATING THE TRANSACTION TOTAL PROPERTY
-      if (foundJobGroupTransactionIndex !== -1) {
-        currentTransaction.totalTransaction = currentTransaction.totalTransaction + foundJobGroupTransaction.totalTransaction;
-        previousTransactions.splice(foundJobGroupTransactionIndex, 1);
+        // If a job match is found aggregate the amounts together, and put the transaction is a list of grouped transactions.
+        if (foundJobGroupTransactionIndex !== -1) {
+          const flattenGroupedTransactions = foundJobGroupTransaction.allJobTransactions.flatMap(item => item);
+          const groupedTransactions = flattenGroupedTransactions.concat(currentTransaction);
+
+          // Add job matches, and group matches to a new property So we can see all the grouped matching transactions
+          newObject;
+          newObject.allJobTransactions = groupedTransactions;
+          newObject.overallJobTotal = (
+            Number(currentTransaction.totalTransaction) + Number(foundJobGroupTransaction.overallJobTotal)
+          ).toFixed(2);
+
+          // Remove prior transaction record from previous so it is not counted again
+          previousTransactions.splice(foundJobGroupTransactionIndex, 1);
+        }
       }
-    }
 
-    previousTransactions.push(currentTransaction);
+      previousTransactions.push(newObject);
+    }
     return previousTransactions;
   }, []);
 };
