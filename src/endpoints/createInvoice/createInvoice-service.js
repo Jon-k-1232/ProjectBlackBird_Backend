@@ -31,7 +31,7 @@ const createInvoiceService = {
       .from('transaction')
       .innerJoin('job', 'transaction.job', '=', 'job.oid')
       .whereIn('transaction.company', [companyId])
-      .whereBetween('transactionDate', [lastInvoiceDate, now]);
+      .where('transaction.transactionDate', '>=', lastInvoiceDate);
   },
 
   /**

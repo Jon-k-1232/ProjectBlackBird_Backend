@@ -40,6 +40,16 @@ const transactionService = {
   insertNewTransaction(db, newTransaction) {
     return db.insert(newTransaction).returning('*').into('transaction');
   },
+
+  getCompanyTransactionTypeBetweenDates(db, companyId, invoiceTimes, type) {
+    const { prevDate, currDate } = invoiceTimes;
+    return db
+      .select()
+      .from('transaction')
+      .whereIn('company', [companyId])
+      .whereIn('transactionType', [type])
+      .whereBetween('transactionDate', [prevDate, currDate]);
+  },
 };
 
 module.exports = transactionService;

@@ -22,7 +22,19 @@ const invoiceService = {
 
   getCompanyInvoicesBetweenDates(db, companyId, invoiceTimes) {
     const { prevDate, currDate } = invoiceTimes;
-    return db.select().from('invoice').whereIn('invoice.company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
+    return db.select().from('invoice').whereIn('company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
+  },
+
+  getCompanyPaidInvoicesBetweenDates(db, companyId, invoiceTimes) {
+    const { prevDate, currDate } = invoiceTimes;
+
+    return db
+      .select()
+      .from('invoice')
+      .whereIn('invoice.company', [companyId])
+      .whereBetween('invoice.invoiceDate', [prevDate, currDate])
+      .innerJoin('transaction', 'invoice.oid', '=', 'transaction.invoice')
+      .where('transaction.transactionType', 'Payment');
   },
 
   /**
@@ -53,6 +65,10 @@ const invoiceService = {
    */
   insertNewInvoice(db, newInvoice) {
     return db.insert(newInvoice).returning('*').into('invoice');
+  },
+
+  insertNewInvoiceDetails(db, job) {
+    return db.insert(job).returning('*').into('invoicedetail');
   },
 };
 
