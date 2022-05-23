@@ -53,6 +53,10 @@ const createInvoiceService = {
 
     return lastInvoiceNumber();
   },
+
+  getBillTo(db) {
+    return db.select().from('setupdata');
+  },
 };
 
 module.exports = createInvoiceService;

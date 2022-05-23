@@ -86,10 +86,10 @@ const createNewInvoice = async (readyToBillContacts, db) => {
 
     insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
     insertInvoice(invoiceObject, nextInvoiceNumber, db);
-    updateContact(contactRecord, invoiceObject, db);
+    // updateContact(contactRecord, invoiceObject, db);
 
-    // ToDo send for pdf creation
-    // const createPDF(newlyCreatedInvoice, setupData);
+    const billTo = await createInvoiceService.getBillTo(db);
+    pdfAndZipFunctions.pdfCreate(invoiceObject, billTo[0]);
 
     return invoiceObject;
   });
