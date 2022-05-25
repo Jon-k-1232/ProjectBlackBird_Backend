@@ -25,13 +25,13 @@ const createInvoiceService = {
    * @param {*} companyId
    * @returns
    */
-  getCompanyTransactionsBetweenDates(db, lastInvoiceDate, now, companyId) {
+  getCompanyTransactionsAfterLastInvoice(db, lastInvoiceDataEndDate, companyId) {
     return db
       .select()
       .from('transaction')
       .innerJoin('job', 'transaction.job', '=', 'job.oid')
       .whereIn('transaction.company', [companyId])
-      .where('transaction.transactionDate', '>=', lastInvoiceDate);
+      .where('transaction.transactionDate', '>=', lastInvoiceDataEndDate);
   },
 
   /**

@@ -104,8 +104,8 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
         contact.newBalance = true;
         contact.balanceChanged = true;
       } else if (newTransaction.transactionType === 'Payment') {
-        // ToDo Need have where payment gets linked to transaction with invoice number in 'invoice' column
-        // ToDo Continueing- need to have
+        // ToDo  Need to apply payment to correct invoice number, and subsequently apply toward unPaidBalance in the invoice table
+        // ToDo  may need to refference oids for invoice to transactions.
         contact.currentBalance = contact.currentBalance - newTransaction.totalTransaction;
         contact.newBalance = true;
         contact.balanceChanged = true;

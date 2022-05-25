@@ -50,6 +50,10 @@ const transactionService = {
       .whereIn('transactionType', [type])
       .whereBetween('transactionDate', [prevDate, currDate]);
   },
+
+  getTransactionTypeToday(db, currDate, type) {
+    return db.select().from('transaction').where('transactionDate', '=', [currDate]).where('transactionType', [type]);
+  },
 };
 
 module.exports = transactionService;

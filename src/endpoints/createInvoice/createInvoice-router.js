@@ -8,6 +8,7 @@ const helperFunctions = require('../../helperFunctions/helperFunctions');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const dayjs = require('dayjs');
 const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../config');
+const { ParameterDescriptionMessage } = require('pg-protocol/dist/messages');
 
 createInvoiceRouter.route('/download').get(async (req, res) => {
   // here we assigned the name to our downloaded file!
@@ -21,80 +22,70 @@ createInvoiceRouter.route('/download').get(async (req, res) => {
 createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
   const db = req.app.get('db');
 
-  // Keep readyToBillContacts here as later a single company will be passed on a separate endpoint, using same code
   const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
-  // ToDo -> Maybe want to send back to allow user to select, or deselect which invoices to send.
 
-  const newInvoices = await createNewInvoice(readyToBillContacts, db);
-  // ToDo create PDF off each returned invoice
-  // ToDo create a zip file in a file system
-
-  res.send({ newInvoices });
+  const newInvoices = Promise.all(readyToBillContacts.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
+  // const newInvoices = await createNewInvoice(readyToBillContacts, db);
+  const invoices = await newInvoices;
+  res.send({ invoices });
 });
 
 module.exports = createInvoiceRouter;
 
 // ********************************************************************?????????????????????
 
-const createNewInvoice = async (readyToBillContacts, db) => {
-  const companyInvoices = readyToBillContacts.map(async (contactRecord, i) => {
-    const removeNulls = array => array.filter(item => item);
-    const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
-    const nextInvoiceNumber = lastInvoiceNumberInDb + 1 + i;
-    const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
-    const invoiceTimes = helperFunctions.timeSubtractionFromTodayCalculator(730);
+const createNewInvoice = async (contactRecord, i, db) => {
+  const removeNulls = array => array.filter(item => item);
+  const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
+  const nextInvoiceNumber = lastInvoiceNumberInDb + 1 + i;
+  const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
+  const invoiceTimes = helperFunctions.timeSubtractionFromTodayCalculator(730);
 
-    //Getting outstanding invoices, and payments that are joined to those invoices
-    const pastCompanyInvoicesWithPayments = await invoiceService.getCompanyPaidInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
-    const pastCompanyInvoicesWithNoPayments = await invoiceService.getCompanyInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
-    const pastCompanyInvoices = joinTwoArraysAndRemoveDuplicateObjects(
-      pastCompanyInvoicesWithPayments,
-      pastCompanyInvoicesWithNoPayments,
-      'invoiceDate',
-      'endingBalance',
-    );
-    // Sort the old invoices oldest to newest
-    const invoicesOfCompanySortedByDate = helperFunctions.sortArrayByObjectProperty(pastCompanyInvoices, 'invoiceDate');
-    // Checking past invoices for credits, or amounts unpaid
-    const outstandingCompanyInvoices = findOutstandingInvoices(invoicesOfCompanySortedByDate);
+  //Getting outstanding invoices, and payments that are joined to those invoices
+  const pastCompanyInvoicesWithPayments = await invoiceService.getCompanyPaidInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
+  const pastCompanyInvoicesWithNoPayments = await invoiceService.getCompanyInvoicesBetweenDates(db, contactRecord.oid, invoiceTimes);
+  const pastCompanyInvoices = joinTwoArraysAndRemoveDuplicateObjects(
+    pastCompanyInvoicesWithPayments,
+    pastCompanyInvoicesWithNoPayments,
+    'invoiceDate',
+    'unPaidBalance',
+  );
+  // Sort the old invoices oldest to newest
+  const invoicesOfCompanySortedByDate = helperFunctions.sortArrayByObjectProperty(pastCompanyInvoices, 'invoiceDate');
+  // Checking past invoices for credits, or amounts unpaid
+  const outstandingCompanyInvoices = findOutstandingInvoices(invoicesOfCompanySortedByDate);
 
-    // TODO verify if interest has been calculated since last invoice date, if so will need to create another transaction with an additional amount to bring interest up to date.
-    // Calculate interest
-    const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
-    const interestTransactionsWithoutNulls = removeNulls(interestTransactions);
-    // Insert interest into transactions
-    await interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction));
+  // Calculate interest
+  const hasInterestBeenChargedToday = await transactionService.getTransactionTypeToday(db, transactionTimes.currDate, 'Interest');
+  const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
+  const interestTransactionsWithoutNulls = hasInterestBeenChargedToday.length ? removeNulls(interestTransactions) : [];
+  // Insert interest into transactions
+  // await interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction));
 
-    // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
-    const lastCompanyInvoice = invoicesOfCompanySortedByDate[invoicesOfCompanySortedByDate.length - 1];
-    const lastCompanyInvoiceDate = pastCompanyInvoices.length === 0 ? transactionTimes.prevDate : lastCompanyInvoice.dataEndDate;
-    const newCompanyCharges = await createInvoiceService.getCompanyTransactionsBetweenDates(
-      db,
-      lastCompanyInvoiceDate,
-      transactionTimes.currDate,
-      contactRecord.oid,
-    );
-    // Merges interest and transactions
-    const newCompanyTransactions = [...newCompanyCharges, ...interestTransactionsWithoutNulls];
+  // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
+  const lastCompanyInvoice = invoicesOfCompanySortedByDate[invoicesOfCompanySortedByDate.length - 1];
+  const lastInvoiceDataEndDate = lastCompanyInvoice ? lastCompanyInvoice.dataEndDate : transactionTimes.prevDate;
+  const newCompanyCharges = await createInvoiceService.getCompanyTransactionsAfterLastInvoice(
+    db,
+    lastInvoiceDataEndDate,
+    contactRecord.oid,
+  );
+  // Merges interest and transactions
+  const newCompanyTransactions = [...newCompanyCharges, ...interestTransactionsWithoutNulls];
+  // Aggregates transactions. Multiple transactions for the same job will add together and output with a single job, Each job will have totals
+  const aggregatedTransactionTotalsByJob = aggregateTransactionTotalsByJob(newCompanyTransactions);
+  const aggregatedAndSortedTotals = aggregateAndSortRemainingTotals(aggregatedTransactionTotalsByJob, nextInvoiceNumber);
 
-    // Aggregates transactions. Multiple transactions for the same job will add together and output with a single job, Each job will have totals
-    const aggregatedTransactionTotalsByJob = aggregateTransactionTotalsByJob(newCompanyTransactions);
-    const aggregatedAndSortedTotals = aggregateAndSortRemainingTotals(aggregatedTransactionTotalsByJob, nextInvoiceNumber);
+  // Invoice created to send to pdf creation
+  const invoiceObject = calculateInvoiceObject(contactRecord, aggregatedAndSortedTotals, outstandingCompanyInvoices, nextInvoiceNumber);
+  // insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
+  // insertInvoice(invoiceObject, nextInvoiceNumber, db);
+  // updateContact(contactRecord, invoiceObject, db);
 
-    // Invoice created to send to pdf creation
-    const invoiceObject = calculateInvoiceObject(contactRecord, aggregatedAndSortedTotals, outstandingCompanyInvoices, nextInvoiceNumber);
+  const payTo = await createInvoiceService.getBillTo(db);
+  pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
 
-    insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
-    insertInvoice(invoiceObject, nextInvoiceNumber, db);
-    // updateContact(contactRecord, invoiceObject, db);
-
-    const billTo = await createInvoiceService.getBillTo(db);
-    pdfAndZipFunctions.pdfCreate(invoiceObject, billTo[0]);
-
-    return invoiceObject;
-  });
-
-  return Promise.all(companyInvoices);
+  return invoiceObject;
 };
 
 /**
@@ -198,15 +189,15 @@ const calculateInvoiceObject = (contactRecord, aggregatedAndSortedTotals, outsta
   // Take an array and a property. The property is an [] array. Property on the array object to flatten.
   const flattenAllGroupedRecords = (array, property) => (array.length ? array.flatMap(job => job[property]) : []);
 
-  const outstandingCharges = calculateGroupedJobTotals(outstandingCompanyInvoices, 'endingBalance');
+  const outstandingCharges = calculateGroupedJobTotals(outstandingCompanyInvoices, 'unPaidBalance');
   const payments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalPayments');
   const paymentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'paymentTransactions');
   const charges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'overallJobTotal') - payments;
-  const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
-  const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
-  const chargesRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
-  const interestRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'interestTransactions');
-  const chargeItemRecordsCombined = [...timeRecords, ...chargesRecords, ...adjustmentRecords, ...interestRecords];
+  // const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
+  // const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
+  // const chargesRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
+  // const interestRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'interestTransactions');
+  const chargeItemRecords = aggregatedAndSortedTotals;
   const endingBalanceTotal = (Number(payments) + Number(charges) + Number(outstandingCharges)).toFixed(2);
   const today = new Date();
   const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -227,7 +218,7 @@ const calculateInvoiceObject = (contactRecord, aggregatedAndSortedTotals, outsta
     totalPayments: payments,
     paymentRecords: paymentRecords,
     totalNewCharges: charges,
-    newChargesRecords: chargeItemRecordsCombined,
+    newChargesRecords: chargeItemRecords,
     endingBalance: endingBalanceTotal,
     unPaidBalance: 0,
     invoiceDate: now,

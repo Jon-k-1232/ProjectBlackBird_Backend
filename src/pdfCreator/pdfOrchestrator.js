@@ -60,7 +60,7 @@ const pdfAndZipFunctions = {
       doc.font(normalFont).fontSize(12).text(`Fax:     ${setupData.customerFax}`, 655, 170);
       doc.lineCap('butt').lineWidth(4).moveTo(10, 210).lineTo(770, 210).stroke();
 
-      // Bill To
+      // Bill To --------------------------------------------------------------------------------------
       doc.font(normalFont).fontSize(12).text(`Bill To:`, 20, 235);
       !address1
         ? doc.font(normalFont).fontSize(12).text(`${contactName}`, 75, 235)
@@ -72,10 +72,10 @@ const pdfAndZipFunctions = {
         ? doc.font(normalFont).fontSize(12).text(`${address4}`, 75, 275)
         : doc.font(normalFont).fontSize(12).text(`${address3}`, 75, 275);
 
-      // Statement dates and starting amount
+      // Statement dates and starting amount ----------------------------------------------------------
       doc.font(normalFont).fontSize(12).text(`Statement Date:`, 590, 235);
       doc.font(normalFont).fontSize(12).text(`Payment Due Date:`, 573, 255);
-      doc.font(normalFont).fontSize(12).text(`Beginning Balance:`, 574, 320);
+
       doc
         .font(normalFont)
         .fontSize(12)
@@ -84,17 +84,87 @@ const pdfAndZipFunctions = {
         .font(normalFont)
         .fontSize(12)
         .text(`${dayjs(paymentDueDate).format('MM/DD/YYYY')}`, 700, 255);
-      doc.font(normalFont).fontSize(12).text(`${beginningBalance}`, 700, 320);
+
+      // Outstanding Charges -------------------------------------------------------------------------
+      let height = 350;
+
+      doc.font(boldFont).fontSize(14).text('Beginning Balance', 10, height);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Date', 25, height + 20);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Reference', 200, height + 20);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Outstanding', 700, height + 20);
+      // left to right, height
+      doc
+        .lineCap('butt')
+        .lineWidth(1)
+        .moveTo(10, height + 40)
+        .lineTo(770, height + 40)
+        .stroke();
+
+      height = height + 30;
+
+      if (outstandingInvoiceRecords.length) {
+        outstandingInvoiceRecords.forEach(paymentRecord => {
+          height = height + 20;
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${dayjs(paymentRecord.invoiceDate).format('MM/DD/YYYY')}`, 25, height);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoice}`, 200, height);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.unPaidBalance}`, 700, height);
+        });
+      }
+
+      doc
+        .lineCap('butt')
+        .lineWidth(1)
+        .moveTo(10, height + 25)
+        .lineTo(770, height + 25)
+        .stroke();
+
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text(`Beginning Balance:`, 574, height + 45);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text(`${beginningBalance}`, 700, height + 45);
+
+      // Payments ---------------------------------------------------------------------------------
+      height = 480;
 
       //Payments (x,y) (width from left, height from top)
-      doc.font(boldFont).fontSize(14).text('Payments', 10, 350);
-      doc.font(normalFont).fontSize(12).text('Date', 25, 370);
-      doc.font(normalFont).fontSize(12).text('Reference', 200, 370);
-      doc.font(normalFont).fontSize(12).text('Amount', 700, 370);
+      doc.font(boldFont).fontSize(14).text('Payments', 10, height);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Date', 25, height + 20);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Reference', 200, height + 20);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Amount', 700, height + 20);
       // left to right, height
-      doc.lineCap('butt').lineWidth(1).moveTo(10, 390).lineTo(770, 390).stroke();
+      doc
+        .lineCap('butt')
+        .lineWidth(1)
+        .moveTo(10, height + 40)
+        .lineTo(770, height + 40)
+        .stroke();
 
-      let height = 390;
+      height = height + 30;
 
       if (paymentRecords.length) {
         paymentRecords.forEach(paymentRecord => {
@@ -102,7 +172,7 @@ const pdfAndZipFunctions = {
           doc
             .font(normalFont)
             .fontSize(12)
-            .text(`${dayjs(paymentRecord.transactionDate).format('MM/DD/YYY')}`, 35, height);
+            .text(`${dayjs(paymentRecord.transactionDate).format('MM/DD/YYYY')}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.job}`, 200, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 720, height);
         });
@@ -124,7 +194,9 @@ const pdfAndZipFunctions = {
         .fontSize(12)
         .text(`${totalPayments}`, 700, height + 45);
 
-      // Charges
+      // Charges ------------------------------------------------------------------------------------------
+      height = height + 10;
+
       doc
         .font(boldFont)
         .fontSize(14)
@@ -132,7 +204,11 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
-        .text('Job Description', 25, height + 90);
+        .text('Job', 25, height + 90);
+      doc
+        .font(normalFont)
+        .fontSize(12)
+        .text('Job Description', 90, height + 90);
       doc
         .font(normalFont)
         .fontSize(12)
@@ -153,16 +229,17 @@ const pdfAndZipFunctions = {
       if (newChargesRecords.length) {
         newChargesRecords.forEach(chargeRecord => {
           height = height + 20;
-          doc.font(normalFont).fontSize(12).text(`${chargeRecord.transactionType}`, 35, height);
-          doc.font(normalFont).fontSize(12).text(`${chargeRecord.totalTransaction}`, 595, height);
+          doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
+          doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);
+          doc.font(normalFont).fontSize(12).text(`${chargeRecord.overallJobTotal}`, 595, height);
         });
       }
 
       doc
         .lineCap('butt')
         .lineWidth(1)
-        .moveTo(10, height + 30)
-        .lineTo(770, height + 30)
+        .moveTo(10, height + 20)
+        .lineTo(770, height + 20)
         .stroke();
 
       doc
