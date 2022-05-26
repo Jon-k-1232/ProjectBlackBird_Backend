@@ -32,6 +32,7 @@ const pdfAndZipFunctions = {
         address2,
         address3,
         address4,
+        address5,
         beginningBalance,
         outstandingInvoiceRecords,
         totalPayments,
@@ -43,12 +44,21 @@ const pdfAndZipFunctions = {
         paymentDueDate,
       } = invoice;
 
+      // removes any slashes from name and any '/' will escape and code will think additional file path.
+      const cleanContactName =
+        contactName.charAt(0).toUpperCase() +
+        contactName
+          .slice(1)
+          .match(/[A-Z]?[a-z]+|[0-9]+|[A-Z]+(?![a-z])/g)
+          .join()
+          .replace(/,/g, ' ');
+
       const boldFont = 'Helvetica-Bold';
       const normalFont = 'Helvetica';
 
       // a3 = 8x12 piece of paper
       const doc = new PDFDocument({ size: 'A3' });
-      doc.pipe(fs.createWriteStream(`${folderPath}/${contactName}.pdf`));
+      doc.pipe(fs.createWriteStream(`${folderPath}/${cleanContactName}.pdf`));
       // header of bill
       doc.image('./images/logo.png', 10, 95, { width: 60 });
       doc.font(boldFont).fontSize(12).text(`${setupData.customerName}`, 75, 100);
@@ -62,15 +72,12 @@ const pdfAndZipFunctions = {
 
       // Bill To --------------------------------------------------------------------------------------
       doc.font(normalFont).fontSize(12).text(`Bill To:`, 20, 235);
-      !address1
-        ? doc.font(normalFont).fontSize(12).text(`${contactName}`, 75, 235)
-        : doc.font(normalFont).fontSize(12).text(`${address1}`, 75, 235);
-      !address2
-        ? doc.font(normalFont).fontSize(12).text(`${address3}`, 75, 255)
-        : doc.font(normalFont).fontSize(12).text(`${address2}`, 75, 255);
-      !address2
-        ? doc.font(normalFont).fontSize(12).text(`${address4}`, 75, 275)
-        : doc.font(normalFont).fontSize(12).text(`${address3}`, 75, 275);
+
+      contactName && doc.font(normalFont).fontSize(12).text(`${contactName}`, 75, 235);
+      address1 && doc.font(normalFont).fontSize(12).text(`${address1}`, 75, 255);
+      address2 && doc.font(normalFont).fontSize(12).text(`${address2}`, 75, 275);
+      address3 && doc.font(normalFont).fontSize(12).text(`${address3}`, 75, 295);
+      address4 && doc.font(normalFont).fontSize(12).text(`${address4}`, 75, 315);
 
       // Statement dates and starting amount ----------------------------------------------------------
       doc.font(normalFont).fontSize(12).text(`Statement Date:`, 590, 235);
@@ -86,17 +93,17 @@ const pdfAndZipFunctions = {
         .text(`${dayjs(paymentDueDate).format('MM/DD/YYYY')}`, 700, 255);
 
       // Outstanding Charges -------------------------------------------------------------------------
-      let height = 350;
+      let height = 385;
 
       doc.font(boldFont).fontSize(14).text('Beginning Balance', 10, height);
       doc
         .font(normalFont)
         .fontSize(12)
-        .text('Date', 25, height + 20);
+        .text('Invoice Date', 25, height + 20);
       doc
         .font(normalFont)
         .fontSize(12)
-        .text('Reference', 200, height + 20);
+        .text('Invoice', 200, height + 20);
       doc
         .font(normalFont)
         .fontSize(12)
@@ -118,7 +125,7 @@ const pdfAndZipFunctions = {
             .font(normalFont)
             .fontSize(12)
             .text(`${dayjs(paymentRecord.invoiceDate).format('MM/DD/YYYY')}`, 25, height);
-          doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoice}`, 200, height);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoiceNumber}`, 200, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.unPaidBalance}`, 700, height);
         });
       }
@@ -140,7 +147,7 @@ const pdfAndZipFunctions = {
         .text(`${beginningBalance}`, 700, height + 45);
 
       // Payments ---------------------------------------------------------------------------------
-      height = 480;
+      height = height + 60;
 
       //Payments (x,y) (width from left, height from top)
       doc.font(boldFont).fontSize(14).text('Payments', 10, height);
@@ -227,7 +234,7 @@ const pdfAndZipFunctions = {
       height = height + 105;
 
       if (newChargesRecords.length) {
-        newChargesRecords.forEach(chargeRecord => {
+        newChargesRecords.forEach((chargeRecord, i) => {
           height = height + 20;
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);

@@ -14,7 +14,7 @@ const createInvoiceService = {
    * @returns  [{},{}] array of objects. Each object is a 'company' record
    */
   getReadyToBill(db) {
-    return db.select().from('company').where('currentBalance', '>', '0');
+    return db.select().from('company').whereIn('newBalance', [true]).whereNotIn('currentBalance', [0]).whereIn('inactive', [false]);
   },
 
   /**
@@ -46,9 +46,8 @@ const createInvoiceService = {
 
   getLastInvoiceNumberInDB(db) {
     const lastInvoiceNumber = async () => {
-      const allInvoiceNumbers = await db.select('invoiceNumber').from('invoice').where('invoiceNumber', '>', '');
-      const lastInvoice = allInvoiceNumbers.pop();
-      return Number(lastInvoice.invoiceNumber);
+      const allInvoiceNumbers = await db.from('invoice').max('invoiceNumber');
+      return allInvoiceNumbers;
     };
 
     return lastInvoiceNumber();

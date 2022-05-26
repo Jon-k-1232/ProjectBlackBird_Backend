@@ -51,8 +51,9 @@ const transactionService = {
       .whereBetween('transactionDate', [prevDate, currDate]);
   },
 
-  getTransactionTypeToday(db, currDate, type) {
-    return db.select().from('transaction').where('transactionDate', '=', [currDate]).where('transactionType', [type]);
+  getTransactionTypeToday(db, type, oid) {
+    const records = db.select().from('transaction').where('company', oid).where('transactionType', type);
+    return records;
   },
 };
 
