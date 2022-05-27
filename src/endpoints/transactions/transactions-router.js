@@ -1,11 +1,11 @@
 const express = require('express');
 const transactionsRouter = express.Router();
-const transactionService = require('./transactions-service');
 const helperFunctions = require('../../helperFunctions/helperFunctions');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
-const contactService = require('../contacts/contacts-service');
 const { defaultDaysInPast } = require('../../config');
+const transactionService = require('./transactions-service');
+const handleChargesAndPayments = require('../transactions/TransactionOrchestrator');
 
 /**
  * All Transactions within a given time frame- in days.
@@ -61,7 +61,7 @@ transactionsRouter.route('/jobTransactions/:companyId/:jobId/').get(async (req, 
 });
 
 /**
- *
+ * Handles Payments, Charges, Time Charges, Adjustment, and updating the DB
  */
 transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
@@ -97,29 +97,12 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
     ignoreInAgeing,
   });
 
-  contactService.getContactInfo(db, newTransaction.company).then(contactInfo => {
-    contactInfo.forEach(contact => {
-      if (newTransaction.transactionType === 'Charge') {
-        contact.currentBalance = contact.currentBalance + newTransaction.totalTransaction;
-        contact.newBalance = true;
-        contact.balanceChanged = true;
-      } else if (newTransaction.transactionType === 'Payment') {
-        // ToDo  Need to apply payment to correct invoice number, and subsequently apply toward unPaidBalance in the invoice table
-        // ToDo  may need to refference oids for invoice to transactions.
-        contact.currentBalance = contact.currentBalance - newTransaction.totalTransaction;
-        contact.newBalance = true;
-        contact.balanceChanged = true;
-      }
-      return contact;
-    });
-    contactService.updateContact(db, newTransaction.company, contactInfo[0]).then(() => {
-      transactionService.insertNewTransaction(db, newTransaction).then(() => {
-        res.send({
-          message: 'Transaction and account updated successfully.',
-          status: 200,
-        });
-      });
-    });
+  const balanceResponse = await handleChargesAndPayments(db, newTransaction);
+
+  res.send({
+    item: balanceResponse,
+    message: 'Transaction and account updated successfully.',
+    status: 200,
   });
 });
 

@@ -20,6 +20,11 @@ const invoiceService = {
     return db.select().from('invoice').whereIn('company', [companyId]);
   },
 
+  getSingleCompanyInvoice(db, newTransaction) {
+    const { company, invoice } = newTransaction;
+    return db.select().from('invoice').whereIn('invoiceNumber', [invoice]).whereIn('company', [company]);
+  },
+
   getCompanyInvoicesBetweenDates(db, companyId, invoiceTimes) {
     const { prevDate, currDate } = invoiceTimes;
     return db.select().from('invoice').whereIn('company', [companyId]).whereBetween('invoiceDate', [prevDate, currDate]);
@@ -69,6 +74,11 @@ const invoiceService = {
 
   insertNewInvoiceDetails(db, job) {
     return db.insert(job).returning('*').into('invoicedetail');
+  },
+
+  updateCompanyInvoice(db, invoiceRecord) {
+    const { oid, unPaidBalance, invoiceNumber } = invoiceRecord;
+    return db.update('unPaidBalance', unPaidBalance).from('invoice').where('oid', oid).where('invoiceNumber', invoiceNumber);
   },
 };
 

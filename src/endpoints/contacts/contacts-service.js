@@ -1,52 +1,55 @@
+const { update } = require('lodash');
+
 const contactService = {
-	/**
-	 * Gets all contacts
-	 * @param {*} db
-	 * @returns [{},{}] Array of objects. Each object is a contact
-	 */
-	getAllContactsInfo(db) {
-		return db.select().table('company')
-	},
+  /**
+   * Gets all contacts
+   * @param {*} db
+   * @returns [{},{}] Array of objects. Each object is a contact
+   */
+  getAllContactsInfo(db) {
+    return db.select().table('company');
+  },
 
-	/**
-	 * Gets all active contacts
-	 * @param {*} db
-	 * @returns [{},{}] Array of objects. Each object is a active contact
-	 */
-	getAllActiveContacts(db) {
-		return db.select().from('company').whereIn('inactive', [false])
-	},
+  /**
+   * Gets all active contacts
+   * @param {*} db
+   * @returns [{},{}] Array of objects. Each object is a active contact
+   */
+  getAllActiveContacts(db) {
+    return db.select().from('company').whereIn('inactive', [false]);
+  },
 
-	/**
-	 * Updates contact information
-	 * @param {*} db
-	 * @param {*} id int
-	 * @returns [{}] array of object. object is company record
-	 */
-	getContactInfo(db, id) {
-		return db.select().from('company').whereIn('oid', [id])
-	},
+  /**
+   * Updates contact information
+   * @param {*} db
+   * @param {*} id int
+   * @returns [{}] array of object. object is company record
+   */
+  getContactInfo(db, id) {
+    return db.select().from('company').whereIn('oid', [id]);
+  },
 
-	/**
-	 * Creates new company/ contact
-	 * @param {*} db
-	 * @param {*} newContact
-	 * @returns [{},{}] Array of objects. Each object is a active contact
-	 */
-	insertNewContact(db, newContact) {
-		return db.insert(newContact).returning('*').into('company')
-	},
+  /**
+   * Creates new company/ contact
+   * @param {*} db
+   * @param {*} newContact
+   * @returns [{},{}] Array of objects. Each object is a active contact
+   */
+  insertNewContact(db, newContact) {
+    return db.insert(newContact).returning('*').into('company');
+  },
 
-	/**
-	 * Updates a specific contact
-	 * @param {*} db
-	 * @param {*} contactId Integer, ID to be updated
-	 * @param {*} updatedContact all contact fields
-	 * @returns [{},{}] Array of objects. Each object is a active contact
-	 */
-	updateContact(db, contactId, updatedContact) {
-		return db.insert().from('company').where('oid', contactId).update(updatedContact)
-	},
-}
+  /**
+   * Updates a specific contact
+   * @param {*} db
+   * @param {*} contactId Integer, ID to be updated
+   * @param {*} updatedContact all contact fields
+   * @returns [{},{}] Array of objects. Each object is a active contact
+   */
+  updateContact(db, updatedContact) {
+    const contactId = updatedContact.oid;
+    return db.insert().from('company').where('oid', contactId).update(updatedContact);
+  },
+};
 
-module.exports = contactService
+module.exports = contactService;
