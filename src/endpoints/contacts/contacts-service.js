@@ -49,6 +49,16 @@ const contactService = {
   updateContact(db, contactId, updatedContact) {
     return db.insert().from('company').where('oid', contactId).update(updatedContact);
   },
+
+  updateThreeCompanyColumns(db, updatedContact) {
+    const { oid, newBalance, balanceChanged, currentBalance } = updatedContact;
+    return db
+      .update('newBalance', newBalance)
+      .update('balanceChanged', balanceChanged)
+      .update('currentBalance', currentBalance)
+      .from('company')
+      .where('oid', oid);
+  },
 };
 
 module.exports = contactService;

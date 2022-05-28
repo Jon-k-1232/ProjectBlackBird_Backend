@@ -64,10 +64,10 @@ const createNewInvoice = async (contactRecord, i, db) => {
   // ToDO Need to handle for if account has a credit
   // If the account shows a credit, apply payment to new charges.
   // If a payment is applied then a record of some sort will need created to document were credit was applied.
-  // const accountCredit = await invoiceService.getCreditedCompanyAmounts(db, contactRecord.oid);
+  const accountCredit = await invoiceService.getCreditedCompanyAmounts(db, contactRecord.oid);
 
   // Merges interest and transactions
-  const newCompanyTransactions = [...newPayments, ...newCompanyCharges, ...interestTransactionsWithoutNulls];
+  const newCompanyTransactions = [...accountCredit, ...newPayments, ...newCompanyCharges, ...interestTransactionsWithoutNulls];
 
   // Aggregates transactions by grouped jobs. Multiple transactions for the same job will add together and output with a single job, Each job will have totals
   const aggregatedTransactionTotalsByJob = aggregateTransactionTotalsByJob(newCompanyTransactions);
