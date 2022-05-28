@@ -97,6 +97,7 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
     ignoreInAgeing,
   });
 
+  // Orchestrator in transactionOrchestrator file.
   const balanceResponse = await handleChargesAndPayments(db, newTransaction);
 
   res.send({

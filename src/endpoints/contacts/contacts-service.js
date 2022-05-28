@@ -46,8 +46,7 @@ const contactService = {
    * @param {*} updatedContact all contact fields
    * @returns [{},{}] Array of objects. Each object is a active contact
    */
-  updateContact(db, updatedContact) {
-    const contactId = updatedContact.oid;
+  updateContact(db, contactId, updatedContact) {
     return db.insert().from('company').where('oid', contactId).update(updatedContact);
   },
 };

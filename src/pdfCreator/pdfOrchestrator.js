@@ -107,6 +107,10 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
+        .text('Original Amount', 400, height + 20);
+      doc
+        .font(normalFont)
+        .fontSize(12)
         .text('Outstanding', 700, height + 20);
       // left to right, height
       doc
@@ -126,6 +130,10 @@ const pdfAndZipFunctions = {
             .fontSize(12)
             .text(`${dayjs(paymentRecord.invoiceDate).format('MM/DD/YYYY')}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoiceNumber}`, 200, height);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${paymentRecord.totalNewCharges.toFixed(2)}`, 400, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.unPaidBalance}`, 700, height);
         });
       }
@@ -147,7 +155,7 @@ const pdfAndZipFunctions = {
         .text(`${beginningBalance}`, 700, height + 45);
 
       // Payments ---------------------------------------------------------------------------------
-      height = height + 60;
+      height = height + 80;
 
       //Payments (x,y) (width from left, height from top)
       doc.font(boldFont).fontSize(14).text('Payments', 10, height);
@@ -158,7 +166,7 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
-        .text('Reference', 200, height + 20);
+        .text('Invoice', 200, height + 20);
       doc
         .font(normalFont)
         .fontSize(12)
@@ -180,8 +188,12 @@ const pdfAndZipFunctions = {
             .font(normalFont)
             .fontSize(12)
             .text(`${dayjs(paymentRecord.transactionDate).format('MM/DD/YYYY')}`, 25, height);
-          doc.font(normalFont).fontSize(12).text(`${paymentRecord.job}`, 200, height);
-          doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 720, height);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoice}`, 200, height);
+          doc
+            .font(normalFont)
+            .fontSize(8)
+            .text('Payment already applied and reflected on outstanding invoice line item', 300, height + 2);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 700, height);
         });
       }
 

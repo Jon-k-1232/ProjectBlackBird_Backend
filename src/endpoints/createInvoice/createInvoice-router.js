@@ -24,7 +24,7 @@ createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
 
 createInvoiceRouter.route('/createInvoice').get(async (req, res) => {
   const db = req.app.get('db');
-  const readyToBillContacts = await contactService.getContactInfo(db, 59);
+  const readyToBillContacts = await contactService.getContactInfo(db, 245);
 
   const newInvoice = await Promise.all(readyToBillContacts.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
   res.send({ newInvoice });

@@ -59,7 +59,7 @@ const invoiceService = {
    * @returns All new invoices for companies that have balances greater than zero. Used for end of month statements
    */
   getNewInvoices(db) {
-    return db.select().from('invoice').where('endingBalance', '>', 0).orWhere('totalNewCharges', '>', 0).orWhere('unpaidbalance', '>', 0);
+    return db.select().from('invoice').where('endingBalance', '>', 0).orWhere('totalNewCharges', '>', 0).orWhere('unPaidBalance', '>', 0);
   },
 
   /**
@@ -79,6 +79,22 @@ const invoiceService = {
   updateCompanyInvoice(db, invoiceRecord) {
     const { oid, unPaidBalance, invoiceNumber } = invoiceRecord;
     return db.update('unPaidBalance', unPaidBalance).from('invoice').where('oid', oid).where('invoiceNumber', invoiceNumber);
+  },
+
+  getOutstandingCompanyInvoice(db, oid) {
+    return db.select().from('invoice').where('company', oid).where('unPaidBalance', '>', 0);
+  },
+
+  getCreditedCompanyAmounts(db, oid) {
+    return db.select().from('invoice').where('company', oid).where('unPaidBalance', '<', 0);
+  },
+
+  getMostRecentCompanyInvoiceNumber(db, oid) {
+    return db.select().from('invoice').where('company', oid).max('invoiceNumber');
+  },
+
+  getMostRecentCompanyInvoice(db, oid, invoiceNumber) {
+    return db.select().from('invoice').whereIn('invoiceNumber', [invoiceNumber]).whereIn('company', [oid]);
   },
 };
 
