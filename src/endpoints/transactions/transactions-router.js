@@ -81,7 +81,8 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
     ignoreInAgeing,
   } = req.body;
 
-  const newTransaction = sanitizeFields({
+  console.log(req.body);
+  const cleanedFields = sanitizeFields({
     company,
     job,
     employee,
@@ -97,6 +98,8 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
     ignoreInAgeing,
   });
 
+  const newTransaction = convertToOriginalTypes(cleanedFields);
+
   // Orchestrator in transactionOrchestrator file.
   const balanceResponse = await handleChargesAndPayments(db, newTransaction);
 
@@ -108,3 +111,21 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
 });
 
 module.exports = transactionsRouter;
+
+const convertToOriginalTypes = newTransaction => {
+  return {
+    company: Number(newTransaction.company),
+    job: Number(newTransaction.job),
+    employee: Number(newTransaction.employee),
+    transactionType: newTransaction.transactionType,
+    transactionDate: newTransaction.transactionDate,
+    quantity: Number(newTransaction.quantity),
+    unitOfMeasure: newTransaction.unitOfMeasure,
+    unitTransaction: Number(newTransaction.unitTransaction),
+    totalTransaction: Number(newTransaction.totalTransaction),
+    discount: Number(newTransaction.discount),
+    invoice: Number(newTransaction.invoice),
+    paymentApplied: Boolean(newTransaction.paymentApplied),
+    ignoreInAgeing: Boolean(newTransaction.ignoreInAgeing),
+  };
+};

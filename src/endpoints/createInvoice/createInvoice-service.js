@@ -49,7 +49,6 @@ const createInvoiceService = {
       const allInvoiceNumbers = await db.from('invoice').max('invoiceNumber');
       return allInvoiceNumbers;
     };
-
     return lastInvoiceNumber();
   },
 
