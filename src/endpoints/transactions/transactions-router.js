@@ -81,7 +81,6 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
     ignoreInAgeing,
   } = req.body;
 
-  console.log(req.body);
   const cleanedFields = sanitizeFields({
     company,
     job,

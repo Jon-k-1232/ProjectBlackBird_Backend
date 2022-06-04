@@ -1,5 +1,3 @@
-const { update } = require('lodash');
-
 const contactService = {
   /**
    * Gets all contacts
@@ -47,7 +45,7 @@ const contactService = {
    * @returns [{},{}] Array of objects. Each object is a active contact
    */
   updateContact(db, contactId, updatedContact) {
-    return db.insert().from('company').where('oid', contactId).update(updatedContact);
+    return db.update(updatedContact).from('company').where('oid', contactId);
   },
 
   updateThreeCompanyColumns(db, updatedContact) {

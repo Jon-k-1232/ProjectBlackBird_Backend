@@ -111,11 +111,11 @@ contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
 /**
  * Updates a user specified user. Param is integer
  */
-contactsRouter.route('/update/contact/:contactId').put(jsonParser, async (req, res) => {
+contactsRouter.route('/update/contact/:contactId').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
-  const { contactId } = Number(req.params);
+  const { contactId } = req.params;
+  const id = Number(contactId);
   const {
-    oid,
     newBalance,
     balanceChanged,
     companyName,
@@ -138,8 +138,7 @@ contactsRouter.route('/update/contact/:contactId').put(jsonParser, async (req, r
     notBillable,
   } = req.body;
 
-  const updatedContact = sanitizeFields({
-    oid,
+  const cleanedFields = sanitizeFields({
     newBalance,
     balanceChanged,
     companyName,
@@ -162,11 +161,13 @@ contactsRouter.route('/update/contact/:contactId').put(jsonParser, async (req, r
     notBillable,
   });
 
-  contactService.updateContact(db, contactId, updatedContact).then(() => {
-    contactService.getAllContactsInfo(db).then(contacts => {
+  const updatedContact = convertToRequiredTypes(cleanedFields);
+
+  contactService.updateContact(db, id, updatedContact).then(() => {
+    contactService.getContactInfo(db, id).then(updatedContact => {
       res.send({
-        contacts,
-        message: 'Job description updated',
+        updatedContact,
+        message: 'Contact description updated',
         status: 200,
       });
     });
@@ -174,3 +175,33 @@ contactsRouter.route('/update/contact/:contactId').put(jsonParser, async (req, r
 });
 
 module.exports = contactsRouter;
+
+/**
+ * Takes params and converts required items to correct type for db insert.
+ * @param {*} contactItem
+ * @returns
+ */
+const convertToRequiredTypes = contactItem => {
+  return {
+    newBalance: Boolean(contactItem.newBalance),
+    balanceChanged: Boolean(contactItem.balanceChanged),
+    companyName: contactItem.companyName,
+    firstName: contactItem.firstName,
+    lastName: contactItem.lastName,
+    middleI: contactItem.middleI,
+    address1: contactItem.address1,
+    address2: contactItem.address2,
+    city: contactItem.city,
+    state: contactItem.state,
+    zip: contactItem.zip,
+    country: contactItem.country,
+    phoneNumber1: contactItem.phoneNumber1,
+    mobilePhone: contactItem.mobilePhone,
+    currentBalance: Number(contactItem.currentBalance),
+    beginningBalance: Number(contactItem.beginningBalance),
+    statementBalance: Number(contactItem.statementBalance),
+    inactive: Boolean(contactItem.inactive),
+    originalCurrentBalance: Number(contactItem.originalCurrentBalance),
+    notBillable: Boolean(contactItem.notBillable),
+  };
+};

@@ -35,7 +35,7 @@ const employeeService = {
    * @returns
    */
   updateEmployee(db, employeeId, updatedEmployee) {
-    return db.insert().from('employee').where('oid', employeeId).update(updatedEmployee);
+    return db.update(updatedEmployee).from('employee').where('oid', employeeId);
   },
 
   /**
