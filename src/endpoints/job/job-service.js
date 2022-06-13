@@ -38,6 +38,10 @@ const jobService = {
   insertNewJob(db, newJob) {
     return db.insert(newJob).returning('*').into('job');
   },
+
+  getLastJobOidInDB(db) {
+    return db.from('job').max('oid');
+  },
 };
 
 module.exports = jobService;

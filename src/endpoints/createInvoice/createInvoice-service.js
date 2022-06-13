@@ -44,12 +44,13 @@ const createInvoiceService = {
     return db.insert(invoice).returning('*').into('invoiceDetail');
   },
 
+  /**
+   * Gets max number in invoiceNumber column of invoice
+   * @param {*} db
+   * @returns
+   */
   getLastInvoiceNumberInDB(db) {
-    const lastInvoiceNumber = async () => {
-      const allInvoiceNumbers = await db.from('invoice').max('invoiceNumber');
-      return allInvoiceNumbers;
-    };
-    return lastInvoiceNumber();
+    return db.from('invoice').max('invoiceNumber');
   },
 
   getBillTo(db) {

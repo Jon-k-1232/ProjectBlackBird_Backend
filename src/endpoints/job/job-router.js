@@ -49,35 +49,24 @@ jobRouter.route('/allJobs/:time').get(async (req, res) => {
  */
 jobRouter.route('/addJob').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
-  const {
-    jobDefinition,
-    company,
-    targetPrice,
-    defaultTargetPrice,
-    startDate,
-    actualDate,
-    contact,
-    contactPhone,
-    contactEmail,
-    description,
-    defaultDescription,
-    isComplete,
-  } = req.body;
+  const { jobDefinition, company, targetPrice, startDate, contact, contactPhone, description, defaultDescription, isComplete } = req.body;
 
-  const newJob = sanitizeFields({
+  const cleanedFields = sanitizeFields({
     jobDefinition,
     company,
     targetPrice,
-    defaultTargetPrice,
     startDate,
-    actualDate,
     contact,
     contactPhone,
-    contactEmail,
     description,
     defaultDescription,
     isComplete,
   });
+
+  const jobInfo = convertToRequiredTypes(cleanedFields);
+  const lastOid = await jobService.getLastJobOidInDB(db);
+  const oid = Number(lastOid[0].max) + 1;
+  const newJob = { ...jobInfo, oid };
 
   jobService.insertNewJob(db, newJob).then(function () {
     res.send({ message: 'Job added successfully.', status: 200 });
@@ -85,3 +74,22 @@ jobRouter.route('/addJob').post(jsonParser, async (req, res) => {
 });
 
 module.exports = jobRouter;
+
+/**
+ * Takes params and converts required items to correct type for db insert.
+ * @param {*} contactItem
+ * @returns
+ */
+const convertToRequiredTypes = jobItem => {
+  return {
+    jobDefinition: Number(jobItem.jobDefinition),
+    company: Number(jobItem.company),
+    targetPrice: Number(jobItem.targetPrice),
+    startDate: jobItem.startDate,
+    contact: jobItem.contact,
+    contactPhone: jobItem.contactPhone,
+    description: jobItem.description,
+    defaultDescription: jobItem.defaultDescription,
+    isComplete: Boolean(jobItem.isComplete),
+  };
+};

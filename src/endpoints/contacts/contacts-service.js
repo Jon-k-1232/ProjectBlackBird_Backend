@@ -34,7 +34,11 @@ const contactService = {
    * @returns [{},{}] Array of objects. Each object is a active contact
    */
   insertNewContact(db, newContact) {
-    return db.insert(newContact).returning('*').into('company');
+    return db.insert(newContact).into('company').returning();
+  },
+
+  getLastContactOidInDB(db) {
+    return db.from('company').max('oid');
   },
 
   /**

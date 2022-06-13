@@ -53,7 +53,6 @@ contactsRouter.route('/allActiveContacts').get(async (req, res) => {
 contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
   const {
-    oid,
     newBalance,
     balanceChanged,
     companyName,
@@ -76,8 +75,7 @@ contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
     notBillable,
   } = req.body;
 
-  const newContact = sanitizeFields({
-    oid,
+  const cleanedFields = sanitizeFields({
     newBalance,
     balanceChanged,
     companyName,
@@ -100,8 +98,14 @@ contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
     notBillable,
   });
 
-  contactService.insertNewContact(db, newContact).then(() => {
+  const contactInfo = convertToRequiredTypes(cleanedFields);
+  const lastOid = await contactService.getLastContactOidInDB(db);
+  const oid = Number(lastOid[0].max) + 1;
+  const newContact = { ...contactInfo, oid };
+
+  contactService.insertNewContact(db, newContact).then(updatedContact => {
     res.send({
+      updatedContact,
       message: 'Contact added successfully.',
       status: 200,
     });
