@@ -291,26 +291,16 @@ const pdfAndZipFunctions = {
     return 200;
   },
 
+  /**
+   * Creates the zip output file
+   * @returns
+   */
   zipCreate: async () => {
     const file = new AdmZip();
     file.addLocalFolder(defaultPdfSaveLocation);
     fs.writeFileSync(`${defaultPdfSaveLocation}/output.zip`, file.toBuffer());
     return 200;
   },
-
-  //   zipCreate: async res => {
-  //     const file = new AdmZip();
-  //     file.addLocalFolder(defaultPdfSaveLocation);
-  //     const data = fs.writeFileSync(`${defaultPdfSaveLocation}/output.zip`, file.toBuffer());
-
-  //     // here we assigned the name to our downloaded file!
-  //     const file_after_download = 'downloaded_file.zip';
-
-  //     res.set('Content-Type', 'application/octet-stream');
-  //     res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
-  //     res.set('Content-Length', data.length);
-  //     res.send(data);
-  //   },
 };
 
 module.exports = pdfAndZipFunctions;

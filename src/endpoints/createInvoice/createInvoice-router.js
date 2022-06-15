@@ -3,32 +3,13 @@ const createInvoiceRouter = express.Router();
 const createInvoiceService = require('./createInvoice-service');
 const createNewInvoice = require('./createInvoiceOrchestrator');
 const contactService = require('../contacts/contacts-service');
+const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
+const { defaultPdfSaveLocation } = require('../../config');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
-const { read } = require('pdfkit');
-
-// createInvoiceRouter.route('/download').get(async (req, res) => {
-//   // here we assigned the name to our downloaded file!
-//   const file_after_download = 'downloaded_file.zip';
-
-//   res.set('Content-Type', 'application/octet-stream');
-//   res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
-//   res.download(`${__dirname}/pdf_holder/${dayjs().format('YYYY-MM-DD')}/output.zip`);
-// });
 
 /**
- * Multi invoice
- */
-createInvoiceRouter.route('/createAllInvoices').get(async (req, res) => {
-  const db = req.app.get('db');
-
-  const readyToBillContacts = await createInvoiceService.getReadyToBill(db);
-  const newInvoices = await Promise.all(readyToBillContacts.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
-  res.send({ newInvoices });
-});
-
-/**
- * List of invoice ready to bill. User to select which to create
+ * List of invoice ready to bill. User to select which invoices to create
  */
 createInvoiceRouter.route('/createInvoices/readyToBill').get(async (req, res) => {
   const db = req.app.get('db');
@@ -60,14 +41,18 @@ createInvoiceRouter.route('/createInvoices/readyToBill/:list').post(jsonParser, 
 });
 
 /**
- * single invoice
+ * Zips the pdf files and sends to front end
  */
-createInvoiceRouter.route('/createInvoice').get(async (req, res) => {
-  const db = req.app.get('db');
-  const readyToBillContacts = await contactService.getContactInfo(db, 245);
+createInvoiceRouter.route('/download').get(async (req, res) => {
+  // Zip the files
+  await pdfAndZipFunctions.zipCreate();
 
-  const newInvoice = await Promise.all(readyToBillContacts.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
-  res.send({ newInvoice });
+  // Assigned the name to downloaded file!
+  const file_after_download = 'downloaded_file.zip';
+
+  res.set('Content-Type', 'application/octet-stream');
+  res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
+  res.download(`${defaultPdfSaveLocation}/output.zip`);
 });
 
 module.exports = createInvoiceRouter;

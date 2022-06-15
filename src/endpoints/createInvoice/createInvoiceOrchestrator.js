@@ -14,21 +14,22 @@ const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../conf
  * @param {*} db
  * @returns object {} object is the invoice with required fields
  */
-const createNewInvoice = async (contactRecord, i, db) => {
+const createNewInvoice = async (id, i, db) => {
   const removeNulls = array => array.filter(item => item);
+  const contact = await contactService.getContactInfo(db, id);
+  const contactRecord = contact[0];
   const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
   const nextInvoiceNumber = Number(lastInvoiceNumberInDb[0].max) + 1;
   const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
-  const invoiceTimes = helperFunctions.timeSubtractionFromTodayCalculator(730);
 
   // Get outstanding bills based off 'unpaidBalance' column.
-  const outstandingCompanyInvoices = await invoiceService.getOutstandingCompanyInvoice(db, Number(contactRecord.oid));
+  const outstandingCompanyInvoices = await invoiceService.getOutstandingCompanyInvoice(db, id);
   const outstandingCompanyInvoicesSortedByDate = helperFunctions.sortArrayByObjectProperty(outstandingCompanyInvoices, 'invoiceDate');
 
   // Calculate interest
   // ToDO update so interest can run based off a boolean, or auto after 25 days.
 
-  const companyInterestRecords = await transactionService.getTransactionTypeToday(db, 'Interest', contactRecord.oid);
+  const companyInterestRecords = await transactionService.getTransactionTypeToday(db, 'Interest', id);
   const hasInterestBeenChargedToday =
     companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().format());
   const hasInterestBeenChargedInPassedMonth =
@@ -42,29 +43,16 @@ const createNewInvoice = async (contactRecord, i, db) => {
   Promise.all(interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction)));
 
   // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
-  const lastCompanyInvoiceNumber = await invoiceService.getMostRecentCompanyInvoiceNumber(db, contactRecord.oid);
-  const lastCompanyInvoice = await invoiceService.getMostRecentCompanyInvoice(
-    db,
-    contactRecord.oid,
-    Number(lastCompanyInvoiceNumber[0].max),
-  );
+  const lastCompanyInvoiceNumber = await invoiceService.getMostRecentCompanyInvoiceNumber(db, id);
+  const lastCompanyInvoice = await invoiceService.getMostRecentCompanyInvoice(db, id, Number(lastCompanyInvoiceNumber[0].max));
   const lastInvoiceDataEndDate = lastCompanyInvoice.length ? lastCompanyInvoice[0].dataEndDate : transactionTimes.prevDate;
-  const newCompanyCharges = await createInvoiceService.getCompanyTransactionsAfterLastInvoice(
-    db,
-    lastInvoiceDataEndDate,
-    Number(contactRecord.oid),
-  );
-  const newPayments = await transactionService.getCompanyTransactionTypeAfterGivenDate(
-    db,
-    Number(contactRecord.oid),
-    lastInvoiceDataEndDate,
-    'Payment',
-  );
+  const newCompanyCharges = await createInvoiceService.getCompanyTransactionsAfterLastInvoice(db, lastInvoiceDataEndDate, id);
+  const newPayments = await transactionService.getCompanyTransactionTypeAfterGivenDate(db, id, lastInvoiceDataEndDate, 'Payment');
 
   // ToDO Need to handle for if account has a credit
   // If the account shows a credit, apply payment to new charges.
   // If a payment is applied then a record of some sort will need created to document were credit was applied.
-  const accountCredit = await invoiceService.getCreditedCompanyAmounts(db, contactRecord.oid);
+  const accountCredit = await invoiceService.getCreditedCompanyAmounts(db, id);
 
   // Merges interest and transactions
   const newCompanyTransactions = [...accountCredit, ...newPayments, ...newCompanyCharges, ...interestTransactionsWithoutNulls];
@@ -81,13 +69,14 @@ const createNewInvoice = async (contactRecord, i, db) => {
     nextInvoiceNumber,
   );
 
-  insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
-  insertInvoice(invoiceObject, nextInvoiceNumber, db);
+  // ToDo turn insert Invoice back on
+  // insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
+  // insertInvoice(invoiceObject, nextInvoiceNumber, db);
   // updateContact(contactRecord, invoiceObject, db);
   // ToDo turn contacts back on
 
   const payTo = await createInvoiceService.getBillTo(db);
-  pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
+  await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
 
   return invoiceObject;
 };
@@ -236,9 +225,9 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
   return (newInvoiceObject = {
     company: oid,
     invoiceNumber: Number(nextInvoiceNumber),
-    contactName: companyName,
-    address1: firstName,
-    address2: lastName,
+    contactName: companyName ? companyName : null,
+    address1: firstName ? firstName : companyName,
+    address2: lastName ? lastName : null,
     address3: address1,
     address4: `${city}, ${state} ${zip}`,
     address5: null,
