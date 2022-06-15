@@ -20,8 +20,8 @@ const invoiceService = {
     return db.select().from('invoice').whereIn('company', [companyId]);
   },
 
-  getSingleCompanyInvoice(db, newTransaction) {
-    const { company, invoice } = newTransaction;
+  getSingleCompanyInvoice(db, companyDetails) {
+    const { company, invoice } = companyDetails;
     return db.select().from('invoice').whereIn('invoiceNumber', [invoice]).whereIn('company', [company]);
   },
 

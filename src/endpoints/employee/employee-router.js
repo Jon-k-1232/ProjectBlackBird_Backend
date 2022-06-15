@@ -3,7 +3,6 @@ const employeeRouter = express.Router();
 const employeeService = require('./employee-service');
 const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
-const { update } = require('lodash');
 
 // Returns all employees active and inactive
 employeeRouter.route('/all').get(async (req, res) => {
@@ -48,13 +47,15 @@ employeeRouter.route('/new/employee').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
   const { firstName, lastName, middleI, hourlyCost, inactive } = req.body;
 
-  const newEmployee = sanitizeFields({
+  const sanitizeEmployee = sanitizeFields({
     firstName,
     lastName,
     middleI,
     hourlyCost,
     inactive,
   });
+
+  const newEmployee = convertToOriginalTypes(sanitizeEmployee);
 
   employeeService.insertEmployee(db, newEmployee).then(() => {
     res.send({

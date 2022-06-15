@@ -25,8 +25,17 @@ const jobDescriptions = {
    * @param {*} updatedDescription
    * @returns
    */
-  updateJobDescription(db, descriptionId, updatedDescription) {
-    return db.insert().from('jobdefinition').where('oid', descriptionId).update(updatedDescription);
+  updateJobDescription(db, updatedDescription, descriptionId) {
+    return db.from('jobdefinition').where('oid', descriptionId).update(updatedDescription);
+  },
+
+  /**
+   * Get last oid
+   * @param {*} db
+   * @returns
+   */
+  getLastJobDescriptionOidInDB(db) {
+    return db.from('jobdefinition').max('oid');
   },
 };
 

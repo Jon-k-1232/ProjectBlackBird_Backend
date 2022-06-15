@@ -39,6 +39,11 @@ const jobService = {
     return db.insert(newJob).returning('*').into('job');
   },
 
+  /**
+   * Get last oid
+   * @param {*} db
+   * @returns
+   */
   getLastJobOidInDB(db) {
     return db.from('job').max('oid');
   },
