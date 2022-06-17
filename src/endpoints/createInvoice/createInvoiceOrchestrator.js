@@ -6,6 +6,7 @@ const helperFunctions = require('../../helperFunctions/helperFunctions');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const dayjs = require('dayjs');
 const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../config');
+const { getCompanyTransactionsAfterLastInvoice } = require('./createInvoice-service');
 
 /**
  * Take a company record. checks for outstanding invoices, calculates interest, and charges. Also creates a pdf bill.
@@ -20,11 +21,9 @@ const createNewInvoice = async (id, i, db) => {
   const contactRecord = contact[0];
   const lastInvoiceNumberInDb = await createInvoiceService.getLastInvoiceNumberInDB(db);
   const nextInvoiceNumber = Number(lastInvoiceNumberInDb[0].max) + 1;
-  const transactionTimes = helperFunctions.timeSubtractionFromTodayCalculator(365);
 
   // Get outstanding bills based off 'unpaidBalance' column.
   const outstandingCompanyInvoices = await invoiceService.getOutstandingCompanyInvoice(db, id);
-  const outstandingCompanyInvoicesSortedByDate = helperFunctions.sortArrayByObjectProperty(outstandingCompanyInvoices, 'invoiceDate');
 
   // Calculate interest
   // ToDO update so interest can run based off a boolean, or auto after 25 days.
@@ -34,9 +33,7 @@ const createNewInvoice = async (id, i, db) => {
     companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().format());
   const hasInterestBeenChargedInPassedMonth =
     companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().subtract(25, 'day'));
-  const interestTransactions = outstandingCompanyInvoicesSortedByDate.length
-    ? calculateBillingInterest(outstandingCompanyInvoicesSortedByDate)
-    : [];
+  const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
   const interestTransactionsWithoutNulls =
     hasInterestBeenChargedToday.length || hasInterestBeenChargedInPassedMonth.length ? [] : removeNulls(interestTransactions);
   // Insert interest into transactions
@@ -45,7 +42,7 @@ const createNewInvoice = async (id, i, db) => {
   // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
   const lastCompanyInvoiceNumber = await invoiceService.getMostRecentCompanyInvoiceNumber(db, id);
   const lastCompanyInvoice = await invoiceService.getMostRecentCompanyInvoice(db, id, Number(lastCompanyInvoiceNumber[0].max));
-  const lastInvoiceDataEndDate = lastCompanyInvoice.length ? lastCompanyInvoice[0].dataEndDate : transactionTimes.prevDate;
+  const lastInvoiceDataEndDate = lastCompanyInvoice.length ? lastCompanyInvoice[0].dataEndDate : dayjs().subtract(365, 'day');
   const newCompanyCharges = await createInvoiceService.getCompanyTransactionsAfterLastInvoice(db, lastInvoiceDataEndDate, id);
   const newPayments = await transactionService.getCompanyTransactionTypeAfterGivenDate(db, id, lastInvoiceDataEndDate, 'Payment');
 
@@ -65,20 +62,19 @@ const createNewInvoice = async (id, i, db) => {
   const invoiceObject = await calculateInvoiceObject(
     contactRecord,
     aggregatedAndSortedTotals,
-    outstandingCompanyInvoicesSortedByDate, // check this const
+    outstandingCompanyInvoices,
     nextInvoiceNumber,
   );
 
   // ToDo turn insert Invoice back on
   // insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
-  // insertInvoice(invoiceObject, nextInvoiceNumber, db);
-  // updateContact(contactRecord, invoiceObject, db);
-  // ToDo turn contacts back on
+  insertInvoice(invoiceObject, nextInvoiceNumber, db);
+  updateContact(contactRecord, invoiceObject, db);
 
   const payTo = await createInvoiceService.getBillTo(db);
   await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
 
-  return invoiceObject;
+  return aggregatedTransactionTotalsByJob;
 };
 
 module.exports = createNewInvoice;
@@ -205,17 +201,19 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
   const outstandingCharges = calculateGroupedJobTotals(outstandingCompanyInvoices, 'unPaidBalance');
   const payments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalPayments');
   const paymentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'paymentTransactions');
-  const charges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'overallJobTotal') - payments;
+  const charges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalCharges');
+  const overallJobTotals = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'overallJobTotal');
   // const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
   // const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
   // const chargesRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
   // const interestRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'interestTransactions');
   const chargeItemRecords = aggregatedAndSortedTotals.filter(item => item.job !== 0 || item.job);
-  // Checking to see if a payment has already been applied to the unpaid amount to show on bill.
+  // Checking to see if a payment has already been applied to the unpaid amount to show on bill. Needed to avoid double payment calculation.
   const outstandingPaymentCheck = paymentRecords.length && paymentRecords.some(item => item.invoice);
   const endingBalanceTotal = outstandingPaymentCheck
     ? (Number(outstandingCharges) + Number(charges)).toFixed(2)
     : (Number(outstandingCharges) + Number(payments) + Number(charges)).toFixed(2);
+  // const unpaidTotal = Number(overallJobTotals).toFixed(2) > 0 ? Number(overallJobTotals).toFixed(2) : Number(charges).toFixed(2);
   const unpaidTotal = Number(charges).toFixed(2);
   const today = new Date();
   const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -311,6 +309,7 @@ const aggregateTransactionTotalsByJob = newCompanyTransactions => {
     const { job, company, employee, description, totalTransaction } = currentTransaction;
     // Company may not have any transactions
     if (currentTransaction !== undefined) {
+      // If prev is empty (no length), 'newObject' will be the first job to be pushed to prev.
       let newObject = {
         job: job,
         company: company,

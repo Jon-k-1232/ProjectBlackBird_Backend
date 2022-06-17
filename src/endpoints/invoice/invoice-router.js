@@ -67,4 +67,82 @@ invoiceRouter.route('/single/:invoiceId/:companyId').get(async (req, res) => {
   });
 });
 
+/**
+ * Updates and Invoice that already exists
+ */
+invoiceRouter.route('/updateInvoice').post(jsonParser, async (req, res) => {
+  const db = req.app.get('db');
+
+  const {
+    oid,
+    company,
+    invoiceNumber,
+    contactName,
+    address1,
+    address2,
+    address3,
+    address4,
+    address5,
+    beginningBalance,
+    totalPayments,
+    totalNewCharges,
+    endingBalance,
+    unPaidBalance,
+    invoiceDate,
+    paymentDueDate,
+    dataEndDate,
+  } = req.body;
+
+  const cleanedFields = sanitizeFields({
+    oid,
+    company,
+    invoiceNumber,
+    contactName,
+    address1,
+    address2,
+    address3,
+    address4,
+    address5,
+    beginningBalance,
+    totalPayments,
+    totalNewCharges,
+    endingBalance,
+    unPaidBalance,
+    invoiceDate,
+    paymentDueDate,
+    dataEndDate,
+  });
+
+  const invoiceData = convertToOriginalTypes(cleanedFields);
+
+  await invoiceService.updateWholeCompanyInvoice(db, invoiceData.invoiceNumber, invoiceData).then(invoiceConfirmed => {
+    res.send({
+      item: invoiceConfirmed,
+      message: 'Transaction and account updated successfully.',
+      status: 200,
+    });
+  });
+});
+
 module.exports = invoiceRouter;
+
+const convertToOriginalTypes = invoice => {
+  return {
+    company: Number(invoice.company),
+    invoiceNumber: Number(invoice.invoiceNumber),
+    contactName: invoice.contactName,
+    address1: invoice.address1,
+    address2: invoice.address2,
+    address3: invoice.address3,
+    address4: invoice.address4,
+    address5: invoice.address5,
+    beginningBalance: Number(invoice.beginningBalance),
+    totalPayments: Number(invoice.totalPayments),
+    totalNewCharges: Number(invoice.totalNewCharges),
+    endingBalance: Number(invoice.endingBalance),
+    unPaidBalance: Number(invoice.unPaidBalance),
+    invoiceDate: invoice.invoiceDate,
+    paymentDueDate: invoice.paymentDueDate,
+    dataEndDate: invoice.dataEndDate,
+  };
+};

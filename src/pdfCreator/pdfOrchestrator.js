@@ -124,6 +124,14 @@ const pdfAndZipFunctions = {
 
       if (outstandingInvoiceRecords.length) {
         outstandingInvoiceRecords.forEach(outstandingRecord => {
+          // This only is for display on the bill only, does not effect DB. Only helps with readability of invoice
+          displayOfUnpaid = paymentRecords.reduce((prev, curr) => {
+            if (Number(outstandingRecord.invoiceNumber) === Number(curr.invoice)) {
+              return (prev = Number(prev) + Number(Math.abs(curr.totalTransaction)));
+            }
+            return outstandingRecord.unPaidBalance;
+          }, outstandingRecord.unPaidBalance);
+
           height = height + 20;
           doc
             .font(normalFont)
@@ -134,7 +142,7 @@ const pdfAndZipFunctions = {
             .font(normalFont)
             .fontSize(12)
             .text(`${outstandingRecord.totalNewCharges.toFixed(2)}`, 400, height);
-          doc.font(normalFont).fontSize(12).text(`${outstandingRecord.unPaidBalance}`, 700, height);
+          doc.font(normalFont).fontSize(12).text(`${displayOfUnpaid}`, 700, height);
         });
       }
 
@@ -144,15 +152,24 @@ const pdfAndZipFunctions = {
         .moveTo(10, height + 25)
         .lineTo(770, height + 25)
         .stroke();
-
       doc
         .font(normalFont)
         .fontSize(12)
         .text(`Beginning Balance:`, 574, height + 45);
+
+      // Displays total for ease of bill reading.
+      const unpaidDisplayTotal = paymentRecords.reduce((prev, curr) => {
+        const match = outstandingInvoiceRecords.find(outstandingRecord => Number(outstandingRecord.invoiceNumber) === Number(curr.invoice));
+        if (match) {
+          return (prev = Number(prev) + Number(Math.abs(curr.totalTransaction)));
+        }
+        return beginningBalance;
+      }, beginningBalance);
+
       doc
         .font(normalFont)
         .fontSize(12)
-        .text(`${beginningBalance}`, 700, height + 45);
+        .text(`${unpaidDisplayTotal}`, 700, height + 45);
 
       // Payments ---------------------------------------------------------------------------------
       height = height + 80;
@@ -189,12 +206,7 @@ const pdfAndZipFunctions = {
             .fontSize(12)
             .text(`${dayjs(paymentRecord.transactionDate).format('MM/DD/YYYY')}`, 25, height);
           paymentRecord.invoice != 0 && doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoice}`, 200, height);
-          paymentRecord.invoice === 0 && doc.font(normalFont).fontSize(12).text('No invoice', 200, height);
-          paymentRecord.invoice != 0 &&
-            doc
-              .font(normalFont)
-              .fontSize(8)
-              .text('Payment already applied and reflected on outstanding invoice line item', 300, height + 2);
+          paymentRecord.invoice === 0 && doc.font(normalFont).fontSize(12).text(`${invoiceNumber}`, 200, height);
           doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 700, height);
         });
       }
@@ -247,12 +259,14 @@ const pdfAndZipFunctions = {
 
       height = height + 105;
 
-      if (newChargesRecords.length) {
+      const newChargesRecordsScrubbed = newChargesRecords.filter(item => item.overallJobTotal > 0);
+      // remove from if block condition - newChargesRecords.totalCharges !== 0
+      if (newChargesRecordsScrubbed.length && newChargesRecords.totalCharges !== 0) {
         newChargesRecords.forEach((chargeRecord, i) => {
           height = height + 20;
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);
-          doc.font(normalFont).fontSize(12).text(`${chargeRecord.overallJobTotal}`, 595, height);
+          doc.font(normalFont).fontSize(12).text(`${chargeRecord.totalCharges}`, 595, height);
         });
       }
 

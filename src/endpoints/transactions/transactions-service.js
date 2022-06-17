@@ -51,8 +51,11 @@ const transactionService = {
   },
 
   getTransactionTypeToday(db, type, oid) {
-    const records = db.select().from('transaction').where('company', oid).where('transactionType', type);
-    return records;
+    return db.select().from('transaction').where('company', oid).where('transactionType', type);
+  },
+
+  getFirstTransaction(db, oid) {
+    return db.select().from('transaction').where('company', oid);
   },
 };
 

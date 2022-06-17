@@ -55,4 +55,23 @@ createInvoiceRouter.route('/download').get(async (req, res) => {
   res.download(`${defaultPdfSaveLocation}/output.zip`);
 });
 
+/**
+ *
+ *
+ * DEBUG
+ * http://localhost:8000/create/createInvoices/readyToBill/debug
+ */
+createInvoiceRouter.route('/createInvoices/readyToBill/debug').get(jsonParser, async (req, res) => {
+  const db = req.app.get('db');
+
+  const arrayOfIds = [372677];
+  // const arrayOfIds = [245];
+
+  const newInvoices = await Promise.all(arrayOfIds.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
+  res.send({
+    newInvoices,
+    status: 200,
+  });
+});
+
 module.exports = createInvoiceRouter;

@@ -81,6 +81,10 @@ const invoiceService = {
     return db.update('unPaidBalance', unPaidBalance).from('invoice').where('oid', oid).where('invoiceNumber', invoiceNumber);
   },
 
+  updateWholeCompanyInvoice(db, invoiceNumber, invoiceData) {
+    return db.update(invoiceData).into('invoice').where('invoiceNumber', invoiceNumber).returning('*');
+  },
+
   getOutstandingCompanyInvoice(db, oid) {
     return db.select().from('invoice').where('company', oid).where('unPaidBalance', '>', 0);
   },
