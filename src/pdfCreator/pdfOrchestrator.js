@@ -259,7 +259,7 @@ const pdfAndZipFunctions = {
 
       height = height + 105;
 
-      const newChargesRecordsScrubbed = newChargesRecords.filter(item => item.overallJobTotal > 0);
+      const newChargesRecordsScrubbed = newChargesRecords.filter(item => item.description !== undefined);
       // remove from if block condition - newChargesRecords.totalCharges !== 0
       if (newChargesRecordsScrubbed.length && newChargesRecords.totalCharges !== 0) {
         newChargesRecords.forEach((chargeRecord, i) => {

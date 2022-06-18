@@ -17,6 +17,10 @@ const contactService = {
     return db.select().from('company').whereIn('inactive', [false]);
   },
 
+  getAllPriorContacts(db) {
+    return db.select().from('company').whereIn('inactive', [true]);
+  },
+
   /**
    * Updates contact information
    * @param {*} db
@@ -49,7 +53,7 @@ const contactService = {
    * @returns [{},{}] Array of objects. Each object is a active contact
    */
   updateContact(db, contactId, updatedContact) {
-    return db.update(updatedContact).from('company').where('oid', contactId);
+    return db.update(updatedContact).from('company').where('oid', contactId).returning('*');
   },
 
   updateThreeCompanyColumns(db, updatedContact) {

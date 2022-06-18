@@ -6,7 +6,6 @@ const helperFunctions = require('../../helperFunctions/helperFunctions');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const dayjs = require('dayjs');
 const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../config');
-const { getCompanyTransactionsAfterLastInvoice } = require('./createInvoice-service');
 
 /**
  * Take a company record. checks for outstanding invoices, calculates interest, and charges. Also creates a pdf bill.

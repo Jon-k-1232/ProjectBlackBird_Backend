@@ -48,6 +48,20 @@ contactsRouter.route('/allActiveContacts').get(async (req, res) => {
 });
 
 /**
+ * Gets priorClients
+ */
+contactsRouter.route('/allPriorContacts').get(async (req, res) => {
+  const db = req.app.get('db');
+
+  contactService.getAllPriorContacts(db).then(priorContacts => {
+    res.send({
+      priorContacts,
+      status: 200,
+    });
+  });
+});
+
+/**
  * Adds a new contact
  */
 contactsRouter.route('/new/contact').post(jsonParser, async (req, res) => {
@@ -167,13 +181,11 @@ contactsRouter.route('/update/contact/:contactId').post(jsonParser, async (req, 
 
   const updatedContact = convertToRequiredTypes(cleanedFields);
 
-  contactService.updateContact(db, id, updatedContact).then(() => {
-    contactService.getContactInfo(db, id).then(updatedContact => {
-      res.send({
-        updatedContact,
-        message: 'Contact description updated',
-        status: 200,
-      });
+  contactService.updateContact(db, id, updatedContact).then(updatedContact => {
+    res.send({
+      updatedContact,
+      message: 'Contact description updated',
+      status: 200,
     });
   });
 });

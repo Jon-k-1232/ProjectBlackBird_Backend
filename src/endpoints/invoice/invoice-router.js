@@ -51,6 +51,39 @@ invoiceRouter.route('/newInvoices').get(async (req, res) => {
   });
 });
 
+/**
+ *
+ */
+invoiceRouter.route('/outstandingInvoices/:oid').get(async (req, res) => {
+  const db = req.app.get('db');
+  const { oid } = req.params;
+
+  invoiceService.getOutstandingCompanyInvoice(db, Number(oid)).then(outstandingInvoiceForCompany => {
+    if (outstandingInvoiceForCompany.length) {
+      const { oid, invoiceNumber, unPaidBalance, invoiceDate, paymentDueDate } = outstandingInvoiceForCompany[0];
+
+      const outstandingInvoices = {
+        oid: oid,
+        invoiceNumber: invoiceNumber,
+        unPaidBalance: unPaidBalance,
+        invoiceDate: invoiceDate,
+        paymentDueDate: paymentDueDate,
+      };
+
+      res.send({
+        outstandingInvoices,
+        status: 200,
+      });
+    } else {
+      const outstandingInvoices = {};
+      res.send({
+        outstandingInvoices,
+        status: 200,
+      });
+    }
+  });
+});
+
 invoiceRouter.route('/single/:invoiceId/:companyId').get(async (req, res) => {
   const invoice = req.params.invoiceId;
   const company = req.params.companyId;
