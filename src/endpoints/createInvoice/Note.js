@@ -198,25 +198,21 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
   const flattenAllGroupedRecords = (array, property) => (array.length ? array.flatMap(job => job[property]) : []);
 
   const outstandingCharges = calculateGroupedJobTotals(outstandingCompanyInvoices, 'unPaidBalance');
-  const writeOffs = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalWriteOffs');
-  const newPayments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalPayments');
-  const payments = (Number(newPayments) + Number(writeOffs)).toFixed(2);
-  const newPaymentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'paymentTransactions');
-  const writeOffRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'writeOffTransactions');
-  const paymentRecords = [...newPaymentRecords, ...writeOffRecords];
-  const newCharges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalCharges');
-  const adjustments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalAdjustments');
-  const time = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalTime');
-  const charges = (Number(newCharges) + Number(adjustments) + Number(time)).toFixed(2);
-  const chargeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
-  const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
-  const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
-  const chargeItemRecords = [...chargeRecords, ...adjustmentRecords, ...timeRecords];
+  const payments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalPayments');
+  const paymentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'paymentTransactions');
+  const charges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalCharges');
+  const overallJobTotals = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'overallJobTotal');
+  // const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
+  // const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
+  // const chargesRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
+  // const interestRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'interestTransactions');
+  const chargeItemRecords = aggregatedAndSortedTotals.filter(item => item.job !== 0 || item.job);
   // Checking to see if a payment has already been applied to the unpaid amount to show on bill. Needed to avoid double payment calculation.
   const outstandingPaymentCheck = paymentRecords.length && paymentRecords.some(item => item.invoice);
   const endingBalanceTotal = outstandingPaymentCheck
     ? (Number(outstandingCharges) + Number(charges)).toFixed(2)
     : (Number(outstandingCharges) + Number(payments) + Number(charges)).toFixed(2);
+  // const unpaidTotal = Number(overallJobTotals).toFixed(2) > 0 ? Number(overallJobTotals).toFixed(2) : Number(charges).toFixed(2);
   const unpaidTotal = Number(charges).toFixed(2);
   const today = new Date();
   const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -246,11 +242,6 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
   });
 };
 
-/**
- *
- * @param {*} aggregatedTransactionTotalsByJob
- * @returns
- */
 const aggregateAndSortRemainingTotals = aggregatedTransactionTotalsByJob => {
   return aggregatedTransactionTotalsByJob.map(companyJob => {
     if (companyJob !== undefined && companyJob.allJobTransactions.length) {
@@ -281,9 +272,9 @@ const aggregateAndSortRemainingTotals = aggregatedTransactionTotalsByJob => {
             newTotalsPerJob.totalAdjustments = (Number(newTotalsPerJob.totalAdjustments) + Number(transaction.totalTransaction)).toFixed(2);
             newTotalsPerJob.adjustmentTransactions.push(transaction);
             break;
-          case 'Write Off':
+          case 'Writeoff':
             newTotalsPerJob.totalWriteOffs = (Number(newTotalsPerJob.totalWriteOffs) + Number(transaction.totalTransaction)).toFixed(2);
-            newTotalsPerJob.writeOffTransactions.push(transaction);
+            newTotalsPerJob.writeoffTransactions.push(transaction);
             break;
           case 'Interest':
             newTotalsPerJob.totalInterest = (Number(newTotalsPerJob.totalInterest) + Number(transaction.totalTransaction)).toFixed(2);

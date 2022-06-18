@@ -142,7 +142,10 @@ const pdfAndZipFunctions = {
             .font(normalFont)
             .fontSize(12)
             .text(`${outstandingRecord.totalNewCharges.toFixed(2)}`, 400, height);
-          doc.font(normalFont).fontSize(12).text(`${displayOfUnpaid}`, 700, height);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${displayOfUnpaid.toFixed(2)}`, 700, height);
         });
       }
 
@@ -207,7 +210,15 @@ const pdfAndZipFunctions = {
             .text(`${dayjs(paymentRecord.transactionDate).format('MM/DD/YYYY')}`, 25, height);
           paymentRecord.invoice != 0 && doc.font(normalFont).fontSize(12).text(`${paymentRecord.invoice}`, 200, height);
           paymentRecord.invoice === 0 && doc.font(normalFont).fontSize(12).text(`${invoiceNumber}`, 200, height);
-          doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 700, height);
+          paymentRecord.transactionType === 'Write Off' &&
+            doc
+              .font(normalFont)
+              .fontSize(8)
+              .text('Write Off', 300, height + 2);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${paymentRecord.totalTransaction.toFixed(2)}`, 700, height);
         });
       }
 
@@ -259,14 +270,15 @@ const pdfAndZipFunctions = {
 
       height = height + 105;
 
-      const newChargesRecordsScrubbed = newChargesRecords.filter(item => item.description !== undefined);
-      // remove from if block condition - newChargesRecords.totalCharges !== 0
-      if (newChargesRecordsScrubbed.length && newChargesRecords.totalCharges !== 0) {
-        newChargesRecords.forEach((chargeRecord, i) => {
+      if (newChargesRecords.length && newChargesRecords.totalCharges !== 0) {
+        newChargesRecords.forEach(chargeRecord => {
           height = height + 20;
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);
-          doc.font(normalFont).fontSize(12).text(`${chargeRecord.totalCharges}`, 595, height);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${chargeRecord.totalTransaction.toFixed(2)}`, 595, height);
         });
       }
 
