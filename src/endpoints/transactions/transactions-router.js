@@ -5,6 +5,7 @@ const jsonParser = express.json();
 const { sanitizeFields } = require('../../utils');
 const { defaultDaysInPast } = require('../../config');
 const transactionService = require('./transactions-service');
+const contactService = require('../contacts/contacts-service');
 const handleChargesAndPayments = require('../transactions/TransactionOrchestrator');
 
 /**
@@ -101,9 +102,11 @@ transactionsRouter.route('/new/addNewTransaction').post(jsonParser, async (req, 
 
   // Orchestrator in transactionOrchestrator file.
   const balanceResponse = await handleChargesAndPayments(db, newTransaction);
+  const updatedAccountInfo = await contactService.getContactInfo(db, newTransaction.company);
 
   res.send({
-    item: balanceResponse,
+    balanceResponse,
+    updatedAccountInfo,
     message: 'Transaction and account updated successfully.',
     status: 200,
   });
@@ -118,10 +121,10 @@ const convertToOriginalTypes = newTransaction => {
     employee: Number(newTransaction.employee),
     transactionType: newTransaction.transactionType,
     transactionDate: newTransaction.transactionDate,
-    quantity: Number(newTransaction.quantity),
+    quantity: Number(newTransaction.quantity).toFixed(1),
     unitOfMeasure: newTransaction.unitOfMeasure,
-    unitTransaction: Number(newTransaction.unitTransaction),
-    totalTransaction: Number(newTransaction.totalTransaction),
+    unitTransaction: Number(newTransaction.unitTransaction).toFixed(2),
+    totalTransaction: Number(newTransaction.totalTransaction).toFixed(2),
     discount: Number(newTransaction.discount),
     invoice: Number(newTransaction.invoice),
     paymentApplied: Boolean(newTransaction.paymentApplied),

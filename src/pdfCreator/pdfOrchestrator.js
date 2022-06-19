@@ -272,13 +272,17 @@ const pdfAndZipFunctions = {
 
       if (newChargesRecords.length && newChargesRecords.totalCharges !== 0) {
         newChargesRecords.forEach(chargeRecord => {
+          const totalAmount = (
+            Number(chargeRecord.totalCharges) +
+            Number(chargeRecord.totalAdjustments) +
+            Number(chargeRecord.totalTime) +
+            Number(chargeRecord.totalInterest)
+          ).toFixed(2);
+
           height = height + 20;
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);
-          doc
-            .font(normalFont)
-            .fontSize(12)
-            .text(`${chargeRecord.totalTransaction.toFixed(2)}`, 595, height);
+          doc.font(normalFont).fontSize(12).text(`${totalAmount}`, 595, height);
         });
       }
 

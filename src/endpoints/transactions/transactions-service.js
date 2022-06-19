@@ -28,7 +28,7 @@ const transactionService = {
    * @param {*} jobId
    */
   getJobTransactions(db, companyId, jobId) {
-    return db.select().from('job').whereIn('company', [companyId]).whereIn('jobDefinition', [jobId]);
+    return db.select().from('transaction').whereIn('company', [companyId]).whereIn('job', [jobId]);
   },
 
   /**

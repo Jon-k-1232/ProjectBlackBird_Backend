@@ -64,8 +64,8 @@ createInvoiceRouter.route('/download').get(async (req, res) => {
 createInvoiceRouter.route('/createInvoices/readyToBill/debug').get(jsonParser, async (req, res) => {
   const db = req.app.get('db');
 
-  // const arrayOfIds = [372677];
-  const arrayOfIds = [245];
+  const arrayOfIds = [372677];
+  // const arrayOfIds = [245];
 
   const newInvoices = await Promise.all(arrayOfIds.map((contactRecord, i) => createNewInvoice(contactRecord, i, db)));
   res.send({

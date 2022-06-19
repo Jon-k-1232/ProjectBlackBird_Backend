@@ -73,7 +73,7 @@ const createNewInvoice = async (id, i, db) => {
   const payTo = await createInvoiceService.getBillTo(db);
   await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
 
-  return invoiceObject;
+  return aggregatedAndSortedTotals;
 };
 
 module.exports = createNewInvoice;
@@ -207,11 +207,11 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
   const newCharges = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalCharges');
   const adjustments = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalAdjustments');
   const time = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalTime');
-  const charges = (Number(newCharges) + Number(adjustments) + Number(time)).toFixed(2);
-  const chargeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'chargeTransactions');
-  const adjustmentRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'adjustmentTransactions');
-  const timeRecords = flattenAllGroupedRecords(aggregatedAndSortedTotals, 'timeTransactions');
-  const chargeItemRecords = [...chargeRecords, ...adjustmentRecords, ...timeRecords];
+  const interest = calculateGroupedJobTotals(aggregatedAndSortedTotals, 'totalInterest');
+  const charges = (Number(newCharges) + Number(adjustments) + Number(time) + Number(interest)).toFixed(2);
+  const chargeItemRecords = aggregatedAndSortedTotals.filter(
+    item => item.totalAdjustments || item.totalCharges || item.totalTime || item.totalInterest,
+  );
   // Checking to see if a payment has already been applied to the unpaid amount to show on bill. Needed to avoid double payment calculation.
   const outstandingPaymentCheck = paymentRecords.length && paymentRecords.some(item => item.invoice);
   const endingBalanceTotal = outstandingPaymentCheck
