@@ -215,10 +215,7 @@ const pdfAndZipFunctions = {
               .font(normalFont)
               .fontSize(8)
               .text('Write Off', 300, height + 2);
-          doc
-            .font(normalFont)
-            .fontSize(12)
-            .text(`${paymentRecord.totalTransaction.toFixed(2)}`, 700, height);
+          doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 700, height);
         });
       }
 
@@ -279,10 +276,15 @@ const pdfAndZipFunctions = {
             Number(chargeRecord.totalInterest)
           ).toFixed(2);
 
+          const { totalTransaction } = chargeRecord;
+
           height = height + 20;
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.job}`, 25, height);
           doc.font(normalFont).fontSize(12).text(`${chargeRecord.description}`, 90, height);
-          doc.font(normalFont).fontSize(12).text(`${totalAmount}`, 595, height);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text(`${totalTransaction || totalAmount}`, 595, height);
         });
       }
 

@@ -59,7 +59,7 @@ const transactionService = {
   },
 
   getInvoiceTransactions(db, invoiceLineOid) {
-    return db.select().from('transaction').where('oid', invoiceLineOid);
+    return db.select().from('transaction').where('invoice', invoiceLineOid).innerJoin('job', 'transaction.job', '=', 'job.oid');
   },
 };
 

@@ -2,8 +2,8 @@ const express = require('express');
 const createInvoiceRouter = express.Router();
 const createInvoiceService = require('./createInvoice-service');
 const invoiceService = require('./../invoice/invoice-service');
+const transactionService = require('./../transactions/transactions-service');
 const createNewInvoice = require('./createInvoiceOrchestrator');
-const contactService = require('../contacts/contacts-service');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const { defaultPdfSaveLocation } = require('../../config');
 const jsonParser = express.json();
@@ -73,24 +73,38 @@ createInvoiceRouter.route('/createInvoices/readyToBill/debug').get(jsonParser, a
   });
 });
 
+/**
+ * Reprint a invoice that already exists
+ */
 createInvoiceRouter.route('/createInvoices/rePrint/:id').get(jsonParser, async (req, res) => {
   const db = req.app.get('db');
   const { id } = req.params;
 
+  // Get data from DB to rebuild invoice
   const invoiceId = Number(id);
-
   const invoiceFromDb = await invoiceService.getInvoiceByInvoiceId(db, invoiceId);
   const invoice = invoiceFromDb[0];
+  const transactionsFromDB = await transactionService.getInvoiceTransactions(db, invoice.oid);
+  const transactions = transactionsFromDB;
   const payToFromDb = await createInvoiceService.getBillTo(db);
   const payTo = payToFromDb[0];
 
+  // Form object to pass to pdf creator
   const invoiceObject = {
     ...invoice,
+    // Unable to get outstanding records at the specific time in history. Would need to create new table to capture unpaid invoices and their balances.
     outstandingInvoiceRecords: [],
-    paymentRecords: [],
-    newChargesRecords: [],
+    paymentRecords: transactions.filter(trans => trans.transactionType === 'Payment' || trans.transactionType === 'WriteOff'),
+    newChargesRecords: transactions.filter(
+      trans =>
+        trans.transactionType === 'Adjustment' ||
+        trans.transactionType === 'Charge' ||
+        trans.transactionType === 'Interest' ||
+        trans.transactionType === 'Time',
+    ),
   };
 
+  // Create Pdf
   await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo);
 
   res.send({ invoiceObject, status: 200 });
