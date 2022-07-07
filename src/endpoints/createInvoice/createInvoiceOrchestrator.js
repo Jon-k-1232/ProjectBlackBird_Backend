@@ -2,7 +2,6 @@ const createInvoiceService = require('./createInvoice-service');
 const invoiceService = require('../invoice/invoice-service');
 const transactionService = require('../transactions/transactions-service');
 const contactService = require('../contacts/contacts-service');
-const helperFunctions = require('../../helperFunctions/helperFunctions');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
 const dayjs = require('dayjs');
 const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../config');
@@ -74,8 +73,10 @@ const createNewInvoice = async (id, i, db) => {
   // insertInvoice(invoiceObject, nextInvoiceNumber, db);
   // updateContact(contactRecord, invoiceObject, db);
 
-  const payTo = await createInvoiceService.getBillTo(db);
-  await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
+  if (invoiceObject.endingBalance !== 0) {
+    const payTo = await createInvoiceService.getBillTo(db);
+    await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
+  }
 
   return invoiceObject;
 };
@@ -91,26 +92,13 @@ module.exports = createNewInvoice;
  */
 const updateContact = async (contactRecord, invoiceObject, db) => {
   const contact = {
+    ...contactRecord,
     newBalance: false,
     balanceChanged: false,
-    companyName: contactRecord.companyName,
-    firstName: contactRecord.firstName,
-    lastName: contactRecord.lastName,
-    middleI: contactRecord.middleI,
-    address1: contactRecord.address1,
-    address2: contactRecord.address2,
-    city: contactRecord.city,
-    state: contactRecord.state,
-    zip: contactRecord.zip,
-    country: contactRecord.country,
-    phoneNumber1: contactRecord.phoneNumber1,
-    mobilePhone: contactRecord.mobilePhone,
-    currentBalance: invoiceObject.endingBalance,
-    beginningBalance: invoiceObject.beginningBalance,
-    statementBalance: invoiceObject.endingBalance,
-    inactive: contactRecord.inactive,
-    originalCurrentBalance: invoiceObject.originalCurrentBalance,
-    notBillable: contactRecord.notBillable,
+    currentBalance: Number(invoiceObject.endingBalance),
+    beginningBalance: Number(invoiceObject.beginningBalance),
+    statementBalance: Number(invoiceObject.endingBalance),
+    originalCurrentBalance: Number(invoiceObject.originalCurrentBalance),
   };
   return contactService.updateContact(db, contactRecord.oid, contact);
 };
@@ -123,41 +111,22 @@ const updateContact = async (contactRecord, invoiceObject, db) => {
  * @returns no return
  */
 const insertInvoice = async (invoiceObject, nextInvoiceNumber, db) => {
-  const {
-    company,
-    contactName,
-    address1,
-    address2,
-    address3,
-    address4,
-    address5,
-    beginningBalance,
-    totalPayments,
-    totalNewCharges,
-    endingBalance,
-    unPaidBalance,
-    invoiceDate,
-    paymentDueDate,
-    dataEndDate,
-  } = invoiceObject;
+  const { contactName, address1, address2, address3, address4, address5 } = invoiceObject;
+
   const invoice = {
-    company: company,
+    ...invoiceObject,
     invoiceNumber: nextInvoiceNumber,
-    contactName: contactName,
     address1: !address1 ? contactName : address1,
     address2: !address2 ? address3 : address2,
     address3: !address3 ? address4 : address3,
     address4: !address4 ? address5 : address4,
     address5: !address5 ? '' : address5,
-    beginningBalance: beginningBalance,
-    totalPayments: totalPayments,
-    totalNewCharges: totalNewCharges,
-    endingBalance: endingBalance,
-    unPaidBalance: unPaidBalance,
-    invoiceDate: invoiceDate,
-    paymentDueDate: paymentDueDate,
-    dataEndDate: dataEndDate,
   };
+
+  delete invoice.newChargesRecords;
+  delete invoice.outstandingInvoiceRecords;
+  delete invoice.paymentRecords;
+
   return invoiceService.insertNewInvoice(db, invoice);
 };
 
@@ -236,14 +205,14 @@ const calculateInvoiceObject = async (contactRecord, aggregatedAndSortedTotals, 
     address3: address1,
     address4: city ? `${city}, ${state} ${zip}` : '',
     address5: '',
-    beginningBalance: outstandingCharges,
+    beginningBalance: Number(outstandingCharges),
     outstandingInvoiceRecords: outstandingCompanyInvoices,
-    totalPayments: payments,
+    totalPayments: Number(payments),
     paymentRecords: paymentRecords,
-    totalNewCharges: charges,
+    totalNewCharges: Number(charges),
     newChargesRecords: chargeItemRecords,
-    endingBalance: endingBalanceTotal,
-    unPaidBalance: unpaidTotal,
+    endingBalance: Number(endingBalanceTotal),
+    unPaidBalance: Number(unpaidTotal),
     invoiceDate: now,
     paymentDueDate: endOfCurrentMonth,
     dataEndDate: now,
