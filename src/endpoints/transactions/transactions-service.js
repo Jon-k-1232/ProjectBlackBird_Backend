@@ -57,6 +57,10 @@ const transactionService = {
   getFirstTransaction(db, oid) {
     return db.select().from('transaction').where('company', oid);
   },
+
+  getInvoiceTransactions(db, invoiceLineOid) {
+    return db.select().from('transaction').where('oid', invoiceLineOid);
+  },
 };
 
 module.exports = transactionService;

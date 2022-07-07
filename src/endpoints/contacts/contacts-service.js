@@ -65,6 +65,30 @@ const contactService = {
       .from('company')
       .where('oid', oid);
   },
+
+  companyCleanupForDeactivation(db, oid, update) {
+    const {
+      statementBalance,
+      currentBalance,
+      beginningBalance,
+      originalCurrentBalance,
+      inactive,
+      notBillable,
+      newBalance,
+      balanceChanged,
+    } = update;
+    return db
+      .update('newBalance', newBalance)
+      .update('balanceChanged', balanceChanged)
+      .update('currentBalance', currentBalance)
+      .update('statementBalance', statementBalance)
+      .update('beginningBalance', beginningBalance)
+      .update('originalCurrentBalance', originalCurrentBalance)
+      .update('inactive', inactive)
+      .update('notBillable', notBillable)
+      .from('company')
+      .where('oid', oid);
+  },
 };
 
 module.exports = contactService;

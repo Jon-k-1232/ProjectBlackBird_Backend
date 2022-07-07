@@ -24,6 +24,9 @@ const createNewInvoice = async (id, i, db) => {
   // Get outstanding bills based off 'unpaidBalance' column.
   const outstandingCompanyInvoices = await invoiceService.getOutstandingCompanyInvoice(db, id);
 
+  // ToDo outstandingCompanyInvoices should also include any negatives for credits. we do have the credit being queried
+  // ToDo continued: on 'accountCredit'. outstandingCompanyInvoices, and credit should likely be grouped. this may take care of the negative not displaying on bill.
+
   // Calculate interest
   // ToDO update so interest can run based off a boolean, or auto after 25 days.
 
@@ -35,8 +38,6 @@ const createNewInvoice = async (id, i, db) => {
   const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
   const interestTransactionsWithoutNulls =
     hasInterestBeenChargedToday.length || hasInterestBeenChargedInPassedMonth.length ? [] : removeNulls(interestTransactions);
-  // Insert interest into transactions
-  Promise.all(interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction)));
 
   // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
   const lastCompanyInvoiceNumber = await invoiceService.getMostRecentCompanyInvoiceNumber(db, id);
@@ -66,14 +67,17 @@ const createNewInvoice = async (id, i, db) => {
   );
 
   // ToDo turn insert Invoice back on
+  // Insert interest into transactions
+  // Promise.all(interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction)));
+  // invoice inserts
   // insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
-  insertInvoice(invoiceObject, nextInvoiceNumber, db);
-  updateContact(contactRecord, invoiceObject, db);
+  // insertInvoice(invoiceObject, nextInvoiceNumber, db);
+  // updateContact(contactRecord, invoiceObject, db);
 
   const payTo = await createInvoiceService.getBillTo(db);
   await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
 
-  return aggregatedAndSortedTotals;
+  return invoiceObject;
 };
 
 module.exports = createNewInvoice;

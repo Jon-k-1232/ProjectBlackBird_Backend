@@ -1,6 +1,7 @@
 const express = require('express');
 const createInvoiceRouter = express.Router();
 const createInvoiceService = require('./createInvoice-service');
+const invoiceService = require('./../invoice/invoice-service');
 const createNewInvoice = require('./createInvoiceOrchestrator');
 const contactService = require('../contacts/contacts-service');
 const pdfAndZipFunctions = require('../../pdfCreator/pdfOrchestrator');
@@ -56,8 +57,6 @@ createInvoiceRouter.route('/download').get(async (req, res) => {
 });
 
 /**
- *
- *
  * DEBUG
  * http://localhost:8000/create/createInvoices/readyToBill/debug
  */
@@ -72,6 +71,29 @@ createInvoiceRouter.route('/createInvoices/readyToBill/debug').get(jsonParser, a
     newInvoices,
     status: 200,
   });
+});
+
+createInvoiceRouter.route('/createInvoices/rePrint/:id').get(jsonParser, async (req, res) => {
+  const db = req.app.get('db');
+  const { id } = req.params;
+
+  const invoiceId = Number(id);
+
+  const invoiceFromDb = await invoiceService.getInvoiceByInvoiceId(db, invoiceId);
+  const invoice = invoiceFromDb[0];
+  const payToFromDb = await createInvoiceService.getBillTo(db);
+  const payTo = payToFromDb[0];
+
+  const invoiceObject = {
+    ...invoice,
+    outstandingInvoiceRecords: [],
+    paymentRecords: [],
+    newChargesRecords: [],
+  };
+
+  await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo);
+
+  res.send({ invoiceObject, status: 200 });
 });
 
 module.exports = createInvoiceRouter;
