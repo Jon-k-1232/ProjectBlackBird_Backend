@@ -29,14 +29,15 @@ const createNewInvoice = async (id, i, db) => {
   // Calculate interest
   // ToDO update so interest can run based off a boolean, or auto after 25 days.
 
-  const companyInterestRecords = await transactionService.getTransactionTypeToday(db, 'Interest', id);
-  const hasInterestBeenChargedToday =
-    companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().format());
-  const hasInterestBeenChargedInPassedMonth =
-    companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().subtract(25, 'day'));
-  const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
-  const interestTransactionsWithoutNulls =
-    hasInterestBeenChargedToday.length || hasInterestBeenChargedInPassedMonth.length ? [] : removeNulls(interestTransactions);
+  // const companyInterestRecords = await transactionService.getTransactionTypeToday(db, 'Interest', id);
+  // const hasInterestBeenChargedToday =
+  //   companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().format());
+  // const hasInterestBeenChargedInPassedMonth =
+  //   companyInterestRecords.length && companyInterestRecords.filter(item => item.transactionDate !== dayjs().subtract(25, 'day'));
+  // const interestTransactions = outstandingCompanyInvoices.length ? calculateBillingInterest(outstandingCompanyInvoices) : [];
+  // const interestTransactionsWithoutNulls =
+  //   hasInterestBeenChargedToday.length || hasInterestBeenChargedInPassedMonth.length ? [] : removeNulls(interestTransactions);
+  const interestTransactionsWithoutNulls = [];
 
   // Getting transactions occurring between last billing cycle and today, grabs onto newly inserted interest transactions
   const lastCompanyInvoiceNumber = await invoiceService.getMostRecentCompanyInvoiceNumber(db, id);

@@ -92,6 +92,11 @@ createInvoiceRouter.route('/createInvoices/rePrint/:id').get(jsonParser, async (
   // Form object to pass to pdf creator
   const invoiceObject = {
     ...invoice,
+    beginningBalance: invoice.beginningBalance.toFixed(2),
+    totalPayments: invoice.totalPayments.toFixed(2),
+    totalNewCharges: invoice.totalNewCharges.toFixed(2),
+    endingBalance: invoice.endingBalance.toFixed(2),
+    unPaidBalance: invoice.unPaidBalance.toFixed(2),
     // Unable to get outstanding records at the specific time in history. Would need to create new table to capture unpaid invoices and their balances.
     outstandingInvoiceRecords: [],
     paymentRecords: transactions.filter(trans => trans.transactionType === 'Payment' || trans.transactionType === 'WriteOff'),

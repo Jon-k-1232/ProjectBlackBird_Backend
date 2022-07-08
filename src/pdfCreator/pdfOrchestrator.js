@@ -172,7 +172,7 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
-        .text(`${unpaidDisplayTotal}`, 700, height + 45);
+        .text(`${unpaidDisplayTotal.toFixed(2)}`, 700, height + 45);
 
       // Payments ---------------------------------------------------------------------------------
       height = height + 80;
@@ -215,7 +215,10 @@ const pdfAndZipFunctions = {
               .font(normalFont)
               .fontSize(8)
               .text('Write Off', 300, height + 2);
-          doc.font(normalFont).fontSize(12).text(`${paymentRecord.totalTransaction}`, 700, height);
+          doc
+            .font(normalFont)
+            .fontSize(12)
+            .text((paymentRecord.totalTransaction && `${paymentRecord.totalTransaction.toFixed(2)}`) || '0.00', 700, height);
         });
       }
 
@@ -233,7 +236,7 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
-        .text(`${totalPayments}`, 700, height + 45);
+        .text((totalPayments && `${totalPayments.toFixed(2)}`) || '0.00', 700, height + 45);
 
       // Charges ------------------------------------------------------------------------------------------
       height = height + 10;
@@ -302,7 +305,7 @@ const pdfAndZipFunctions = {
       doc
         .font(normalFont)
         .fontSize(12)
-        .text(`${totalNewCharges}`, 700, height + 55);
+        .text(`${totalNewCharges.toFixed(2)}`, 700, height + 55);
 
       // Total
       doc
@@ -312,7 +315,7 @@ const pdfAndZipFunctions = {
       doc
         .font(boldFont)
         .fontSize(14)
-        .text(`${endingBalance}`, 700, height + 85);
+        .text(`${endingBalance.toFixed(2)}`, 700, height + 85);
 
       // Interest statement
       doc.font(normalFont).fontSize(10).text(`${setupData.statementText}`, 250, 1100);

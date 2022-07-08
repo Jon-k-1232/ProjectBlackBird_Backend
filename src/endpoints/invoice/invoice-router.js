@@ -91,12 +91,12 @@ invoiceRouter.route('/single/:invoiceId/:companyId').get(async (req, res) => {
   const db = req.app.get('db');
 
   const returnedInvoice = await invoiceService.getSingleCompanyInvoice(db, dataToPass);
-  invoiceService.getInvoiceDetail(db, [returnedInvoice[0].oid]).then(invoiceDetails => {
-    res.send({
-      returnedInvoice,
-      invoiceDetails,
-      status: 200,
-    });
+  const invoiceDetails = await invoiceService.getInvoiceDetail(db, [returnedInvoice[0].oid]);
+
+  res.send({
+    returnedInvoice,
+    invoiceDetails,
+    status: 200,
   });
 });
 
