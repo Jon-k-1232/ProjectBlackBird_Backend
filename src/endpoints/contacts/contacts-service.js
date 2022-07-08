@@ -89,6 +89,19 @@ const contactService = {
       .from('company')
       .where('oid', oid);
   },
+
+  companyZeroOut(db, oid, update) {
+    const { statementBalance, currentBalance, beginningBalance, originalCurrentBalance, newBalance, balanceChanged } = update;
+    return db
+      .update('newBalance', newBalance)
+      .update('balanceChanged', balanceChanged)
+      .update('currentBalance', currentBalance)
+      .update('statementBalance', statementBalance)
+      .update('beginningBalance', beginningBalance)
+      .update('originalCurrentBalance', originalCurrentBalance)
+      .from('company')
+      .where('oid', oid);
+  },
 };
 
 module.exports = contactService;

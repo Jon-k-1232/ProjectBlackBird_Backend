@@ -210,7 +210,6 @@ contactsRouter.route('/cleanAndDeactivate/:list').post(jsonParser, async (req, r
 });
 
 /**
- * Debug
  * http://localhost:8000/contacts/cleanAndDeactivate/debug
  */
 // contactsRouter.route('/cleanAndDeactivate/debug').get(async (req, res) => {
@@ -234,6 +233,19 @@ contactsRouter.route('/cleanAndDeactivate/:list').post(jsonParser, async (req, r
 
 //   res.send({ status: 200 });
 // });
+
+/**
+ * http://localhost:8000/contacts/zeroOutCompany
+ */
+contactsRouter.route('/zeroOutCompany').get(async (req, res) => {
+  const db = req.app.get('db');
+
+  const arrayOfIds = [299834, 112213, 161413, 394171, 594, 260151, 132, 61721, 657, 154157, 127941, 450, 265, 405450];
+
+  await Promise.all(arrayOfIds.map(contactId => zeroContact(contactId, db)));
+
+  res.send({ status: 200 });
+});
 
 module.exports = contactsRouter;
 
@@ -281,6 +293,22 @@ const cleanup = async (contactId, db) => {
 
   // const contact = await contactService.getContactInfo(db, contactId);
   const updateContact = await contactService.companyCleanupForDeactivation(db, contactId, update);
+
+  return updateContact;
+};
+
+const zeroContact = async (contactId, db) => {
+  const update = {
+    statementBalance: 0,
+    currentBalance: 0,
+    beginningBalance: 0,
+    originalCurrentBalance: 0,
+    newBalance: false,
+    balanceChanged: false,
+  };
+
+  // const contact = await contactService.getContactInfo(db, contactId);
+  const updateContact = await contactService.companyZeroOut(db, contactId, update);
 
   return updateContact;
 };
