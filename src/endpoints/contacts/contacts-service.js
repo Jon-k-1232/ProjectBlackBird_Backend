@@ -87,7 +87,8 @@ const contactService = {
       .update('inactive', inactive)
       .update('notBillable', notBillable)
       .from('company')
-      .where('oid', oid);
+      .where('oid', oid)
+      .returning('*');
   },
 
   companyZeroOut(db, oid, update) {
@@ -100,7 +101,8 @@ const contactService = {
       .update('beginningBalance', beginningBalance)
       .update('originalCurrentBalance', originalCurrentBalance)
       .from('company')
-      .where('oid', oid);
+      .where('oid', oid)
+      .returning('*');
   },
 };
 
