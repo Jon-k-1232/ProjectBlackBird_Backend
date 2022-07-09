@@ -13,7 +13,7 @@ const { defaultInterestRate, defaultInterestMonthsInYear } = require('../../conf
  * @param {*} db
  * @returns object {} object is the invoice with required fields
  */
-const createNewInvoice = async (id, i, reviewEstimate, db) => {
+const createNewInvoice = async (id, i, roughDraft, createPdf, db) => {
   const removeNulls = array => array.filter(item => item);
   const contact = await contactService.getContactInfo(db, id);
   const contactRecord = contact[0];
@@ -67,15 +67,15 @@ const createNewInvoice = async (id, i, reviewEstimate, db) => {
   );
 
   // If bills have been approved then inserts will run, and pdf's will generate
-  if (!reviewEstimate) {
-    // ToDo turn insert Invoice back on
+  if (!roughDraft) {
     // Insert interest into transactions
     // Promise.all(interestTransactionsWithoutNulls.map(async transaction => await transactionService.insertNewTransaction(db, transaction)));
     // invoice inserts
-    // insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
-    // insertInvoice(invoiceObject, nextInvoiceNumber, db);
-    // updateContact(contactRecord, invoiceObject, db);
-
+    insertInvoiceDetails(invoiceObject, nextInvoiceNumber, db);
+    insertInvoice(invoiceObject, nextInvoiceNumber, db);
+    updateContact(contactRecord, invoiceObject, db);
+  }
+  if (createPdf) {
     const payTo = await createInvoiceService.getBillTo(db);
     await pdfAndZipFunctions.pdfCreate(invoiceObject, payTo[0]);
   }

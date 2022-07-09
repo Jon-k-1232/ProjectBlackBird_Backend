@@ -25,18 +25,21 @@ createInvoiceRouter.route('/createInvoices/readyToBill').get(async (req, res) =>
 /**
  * User selected invoices, create invoices
  */
-createInvoiceRouter.route('/createInvoices/readyToBill/:list/:reviewEstimate').post(jsonParser, async (req, res) => {
+createInvoiceRouter.route('/createInvoices/readyToBill/:list/:invoiceRoughDraft/:createPdfInvoice').post(jsonParser, async (req, res) => {
   const db = req.app.get('db');
   const list = req.params.list;
-  const review = req.params.reviewEstimate;
-  const reviewEstimate = review === 'true' ? true : false;
+  const { invoiceRoughDraft, createPdfInvoice } = req.params;
+  const roughDraft = invoiceRoughDraft === 'true' ? true : false;
+  const createPdf = createPdfInvoice === 'true' ? true : false;
 
   const sanitizedData = sanitizeFields({ list });
   // Since sanitized, list is one giant string, must be separated at commas then converted into ints
   const separatedList = sanitizedData.list.split(',');
   const arrayOfIds = separatedList.map(item => Number(item));
 
-  const newInvoices = await Promise.all(arrayOfIds.map((contactRecord, i) => createNewInvoice(contactRecord, i, reviewEstimate, db)));
+  const newInvoices = await Promise.all(
+    arrayOfIds.map((contactRecord, i) => createNewInvoice(contactRecord, i, roughDraft, createPdf, db)),
+  );
 
   res.send({
     newInvoices,
