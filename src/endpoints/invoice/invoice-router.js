@@ -60,16 +60,17 @@ invoiceRouter.route('/outstandingInvoices/:oid').get(async (req, res) => {
 
   invoiceService.getOutstandingCompanyInvoice(db, Number(oid)).then(outstandingInvoiceForCompany => {
     if (outstandingInvoiceForCompany.length) {
-      const { oid, invoiceNumber, unPaidBalance, invoiceDate, paymentDueDate } = outstandingInvoiceForCompany[0];
-
-      const outstandingInvoices = {
-        oid: oid,
-        invoiceNumber: invoiceNumber,
-        unPaidBalance: unPaidBalance,
-        invoiceDate: invoiceDate,
-        paymentDueDate: paymentDueDate,
-      };
-
+      const outstandingInvoices = outstandingInvoiceForCompany.map(item => {
+        const { oid, invoiceNumber, unPaidBalance, invoiceDate, paymentDueDate, address1 } = item;
+        return {
+          oid: oid,
+          company: address1,
+          invoiceNumber: invoiceNumber,
+          unPaidBalance: unPaidBalance,
+          invoiceDate: invoiceDate,
+          paymentDueDate: paymentDueDate,
+        };
+      });
       res.send({
         outstandingInvoices,
         status: 200,

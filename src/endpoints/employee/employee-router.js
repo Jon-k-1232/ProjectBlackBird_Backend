@@ -20,9 +20,9 @@ employeeRouter.route('/all').get(async (req, res) => {
 employeeRouter.route('/allActiveEmployees').get(async (req, res) => {
   const db = req.app.get('db');
 
-  employeeService.getActiveEmployees(db).then(activeEmployeeList => {
+  employeeService.getActiveEmployees(db).then(employees => {
     res.send({
-      activeEmployeeList,
+      employees,
       status: 200,
     });
   });
