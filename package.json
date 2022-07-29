@@ -1,45 +1,45 @@
 {
-	"name": "project_black_bird",
-	"version": "1.0.0",
-	"description": "",
-	"main": "index.js",
-	"scripts": {
-		"test": "mocha --require test/setup.js",
-		"dev": "nodemon src/server.js",
-		"predeploy": "npm audit && npm run migrate:production",
-		"deploy": "git push heroku master",
-		"migrate": "postgrator --config postgrator-config.js",
-		"migrate:test": "env NODE_ENV=test npm run migrate",
-		"migrate:production": "env SSL=true DATABASE_URL=$(heroku config:get DATABASE_URL) npm run migrate",
-		"start": "node src/server.js"
-	},
-	"keywords": [],
-	"author": "Jon Kimmel",
-	"license": "ISC",
-	"dependencies": {
-		"adm-zip": "^0.5.9",
-		"bcryptjs": "^2.4.3",
-		"chai-http": "^4.3.0",
-		"cors": "^2.8.5",
-		"dayjs": "^1.10.7",
-		"db": "^2.0.2",
-		"dotenv": "^8.6.0",
-		"express": "^4.17.1",
-		"fs": "^0.0.1-security",
-		"helmet": "^3.23.3",
-		"json-parser": "^3.1.2",
-		"jsonwebtoken": "^8.5.1",
-		"knex": "^0.20.15",
-		"lodash": "^4.17.21",
-		"morgan": "^1.10.0",
-		"pdfkit": "^0.13.0",
-		"pg": "^8.7.1",
-		"xss": "^1.0.10"
-	},
-	"devDependencies": {
-		"chai": "^4.2.0",
-		"mocha": "^6.2.2",
-		"nodemon": "^2.0.2",
-		"supertest": "^4.0.2"
-	}
+  "name": "project_black_bird",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require test/setup.js",
+    "dev": "nodemon src/server.js",
+    "predeploy": "npm audit && npm run migrate:production",
+    "deploy": "git push heroku master",
+    "migrate": "postgrator --config postgrator-config.js",
+    "migrate:test": "env NODE_ENV=test npm run migrate",
+    "migrate:production": "env SSL=true DATABASE_URL=$(heroku config:get DATABASE_URL) npm run migrate",
+    "start": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "Jon Kimmel",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.5.9",
+    "bcryptjs": "^2.4.3",
+    "chai-http": "^4.3.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.10.7",
+    "db": "^2.0.2",
+    "dotenv": "^8.6.0",
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security",
+    "helmet": "^3.23.3",
+    "json-parser": "^3.1.2",
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^0.20.15",
+    "lodash": "^4.17.21",
+    "morgan": "^1.10.0",
+    "pdfkit": "^0.13.0",
+    "pg": "^8.7.3",
+    "xss": "^1.0.10"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.2.2",
+    "nodemon": "^2.0.2",
+    "supertest": "^4.0.2"
+  }
 }
